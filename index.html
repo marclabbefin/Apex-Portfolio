@@ -895,6 +895,13 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
       <span class="nav-icon">◁</span> Charts
     </div>
 
+        <div class="nav-item" onclick="showPage('research')">
+      <span class="nav-icon">⬕</span> Research Links
+    </div>
+    <div class="nav-item" onclick="showPage('calendar')">
+      <span class="nav-icon">◷</span> Key Dates
+    </div>
+
     <div class="nav-section">Account</div>
     <div class="nav-item" onclick="showPage('settings')">
       <span class="nav-icon">◻</span> Settings
@@ -1594,6 +1601,33 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
 
 </div><!-- /layout -->
 
+  <!-- ═══════════════ RESEARCH LINKS PAGE ═══════════════ -->
+  <div id="page-research" class="page" style="display:none">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Research Links</div>
+        <div class="page-subtitle">Financial resources for your holdings</div>
+      </div>
+      <button class="refresh-btn" onclick="initResearchLinks()">↺ Refresh</button>
+    </div>
+    <div id="researchGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding-bottom:24px;"></div>
+  </div>
+
+  <!-- ═══════════════ KEY DATES / CALENDAR PAGE ═══════════════ -->
+  <div id="page-calendar" class="page" style="display:none">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Key Dates</div>
+        <div class="page-subtitle">Earnings · Dividends · Macro events</div>
+      </div>
+      <button class="refresh-btn" onclick="initCalendar(true)">↺ Refresh</button>
+    </div>
+    <div id="calLoading" style="text-align:center;padding:40px 0;color:var(--dim);display:none">
+      <div style="font-size:22px;margin-bottom:8px">⟳</div>Loading calendar data…
+    </div>
+    <div id="calendarBody" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-bottom:24px;align-items:start;"></div>
+  </div>
+
 <!-- STATUS BAR -->
 <div class="statusbar">
   <div class="status-item">
@@ -1663,6 +1697,8 @@ function showPage(id) {
   if (id === 'briefing') { try { loadBriefingHistory(); } catch(e) {} }
   if (id === 'settings') { try { initSettingsPage(); } catch(e) {} }
   if (id === 'news') { try { loadCachedNews(); } catch(e) {} }
+    if (id === 'research') { initResearchLinks(); }
+    if (id === 'calendar') { initCalendar(false); }
 }
 
 // ── Clock ──
@@ -2962,6 +2998,277 @@ function initSettingsPage() {
 buildInitialTape();
 fetchAllPrices();
 setInterval(fetchAllPrices, 5 * 60 * 1000);
+
+
+// ══════════════════════════════════════════════════════
+// RESEARCH LINKS MODULE
+// ══════════════════════════════════════════════════════
+function initResearchLinks() {
+  const grid = document.getElementById('researchGrid');
+  if (!grid) return;
+  const pos = loadPositions();
+  const tickers = Object.keys(pos).filter(t => t !== 'CASH');
+
+  // Define link sources per ticker
+  function getLinks(t) {
+    const encoded = encodeURIComponent(t);
+    const isCanadian = t.endsWith('.TO') || t.endsWith('.NE');
+    const isCrypto = t.includes('-USD') || t.includes('-CAD');
+    const isBTC = t.startsWith('BTC');
+    const isIndex = t.startsWith('^');
+    // Base symbol (strip exchange suffix for some links)
+    const baseSym = t.replace(/.(TO|NE)$/, '');
+
+    const links = [
+      { label: 'Yahoo Finance', icon: '◈', url: `https://finance.yahoo.com/quote/${encoded}`, cat: 'Quote' },
+      { label: 'YF News', icon: '◎', url: `https://finance.yahoo.com/quote/${encoded}/news/`, cat: 'News' },
+      { label: 'YF Analysis', icon: '⬡', url: `https://finance.yahoo.com/quote/${encoded}/analysis/`, cat: 'Analysis' },
+      { label: 'YF Financials', icon: '◁', url: `https://finance.yahoo.com/quote/${encoded}/financials/`, cat: 'Financials' },
+    ];
+
+    if (!isIndex && !isCrypto) {
+      links.push({ label: 'Seeking Alpha', icon: '⬕', url: `https://seekingalpha.com/symbol/${baseSym}`, cat: 'Analysis' });
+      links.push({ label: 'StockAnalysis', icon: '◻', url: isCanadian ? `https://stockanalysis.com/stocks/${baseSym.toLowerCase()}/` : `https://stockanalysis.com/stocks/${t.toLowerCase()}/`, cat: 'Analysis' });
+    }
+
+    if (!isCanadian && !isCrypto && !isIndex) {
+      links.push({ label: 'SEC Filings', icon: '⬡', url: `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=&CIK=${baseSym}&type=10-K&dateb=&owner=include&count=10`, cat: 'Filings' });
+      links.push({ label: 'Reuters', icon: '◎', url: `https://www.reuters.com/companies/${baseSym}.O`, cat: 'News' });
+    }
+    if (isCanadian) {
+      links.push({ label: 'SEDAR+', icon: '⬡', url: `https://www.sedarplus.ca/`, cat: 'Filings' });
+      links.push({ label: 'TMX Money', icon: '◁', url: `https://money.tmx.com/en/quote/${baseSym}`, cat: 'Quote' });
+    }
+    if (isCrypto || isBTC) {
+      links.push({ label: 'CoinGecko', icon: '◈', url: 'https://www.coingecko.com/en/coins/bitcoin', cat: 'Quote' });
+      links.push({ label: 'CoinMarketCap', icon: '◎', url: 'https://coinmarketcap.com/currencies/bitcoin/', cat: 'News' });
+    }
+    return links;
+  }
+
+  const catColors = { Quote: 'var(--acc)', News: 'var(--gr)', Analysis: 'var(--yl)', Filings: 'var(--re)' };
+
+  grid.innerHTML = tickers.map(t => {
+    const links = getLinks(t);
+    const linksHtml = links.map(l => `
+      <a href="${l.url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;background:var(--bg3);text-decoration:none;color:var(--txt);font-size:12px;transition:background .15s;border:1px solid var(--bd)" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg3)'">
+        <span style="color:${catColors[l.cat] || 'var(--acc)'};${''}">${l.icon}</span>
+        <span style="flex:1">${l.label}</span>
+        <span style="font-size:10px;color:var(--dim);background:var(--bg2);padding:2px 6px;border-radius:3px">${l.cat}</span>
+      </a>`).join('');
+    return `
+    <div class="card" style="padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:15px;color:var(--acc)">${t}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">${linksHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// KEY DATES / CALENDAR MODULE
+// ══════════════════════════════════════════════════════
+const CAL_CACHE_KEY = 'apex-cal-cache';
+const CAL_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+function initCalendar(forceRefresh) {
+  if (!forceRefresh) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(CAL_CACHE_KEY) || 'null');
+      if (cached && (Date.now() - cached.ts) < CAL_CACHE_TTL) {
+        renderCalendar(cached.data);
+        return;
+      }
+    } catch(e) {}
+  }
+  fetchCalendarData();
+}
+
+async function fetchCalendarData() {
+  const loading = document.getElementById('calLoading');
+  const body = document.getElementById('calendarBody');
+  if (!loading || !body) return;
+  loading.style.display = 'block';
+  body.style.display = 'none';
+
+  const pos = loadPositions();
+  const tickers = Object.keys(pos).filter(t => t !== 'CASH');
+  const results = {};
+
+  await Promise.all(tickers.map(async t => {
+    try {
+      const url = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(t) + '?interval=1d&range=1d')}`;
+      const r = await fetch(url);
+      const j = await r.json();
+      const meta = j?.chart?.result?.[0]?.meta || {};
+      results[t] = {
+        earningsDate: meta.earningsTimestamp ? new Date(meta.earningsTimestamp * 1000) : null,
+        earningsHigh: meta.earningsTimestampEnd ? new Date(meta.earningsTimestampEnd * 1000) : null,
+        exDivDate: meta.exDividendDate ? new Date(meta.exDividendDate * 1000) : null,
+        dividendDate: meta.dividendDate ? new Date(meta.dividendDate * 1000) : null,
+        trailingAnnualDividendRate: meta.trailingAnnualDividendRate || null,
+        dividendYield: meta.trailingAnnualDividendYield ? (meta.trailingAnnualDividendYield * 100).toFixed(2) : null,
+        fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh || null,
+        fiftyTwoWeekLow: meta.fiftyTwoWeekLow || null,
+      };
+    } catch(e) {
+      results[t] = null;
+    }
+  }));
+
+  // Also fetch summary data for more dividend/earnings info
+  await Promise.all(tickers.map(async t => {
+    try {
+      const url = `https://corsproxy.io/?url=${encodeURIComponent('https://query2.finance.yahoo.com/v10/finance/quoteSummary/' + encodeURIComponent(t) + '?modules=calendarEvents,summaryDetail')}`;
+      const r = await fetch(url);
+      const j = await r.json();
+      const cal = j?.quoteSummary?.result?.[0]?.calendarEvents || {};
+      const summ = j?.quoteSummary?.result?.[0]?.summaryDetail || {};
+      if (results[t]) {
+        if (cal.earnings?.earningsDate?.[0]?.raw) results[t].earningsDate = new Date(cal.earnings.earningsDate[0].raw * 1000);
+        if (cal.earnings?.earningsDate?.[1]?.raw) results[t].earningsHigh = new Date(cal.earnings.earningsDate[1].raw * 1000);
+        if (cal.exDividendDate?.raw) results[t].exDivDate = new Date(cal.exDividendDate.raw * 1000);
+        if (cal.dividendDate?.raw) results[t].dividendDate = new Date(cal.dividendDate.raw * 1000);
+        if (summ.dividendRate?.raw) results[t].trailingAnnualDividendRate = summ.dividendRate.raw;
+        if (summ.dividendYield?.raw) results[t].dividendYield = (summ.dividendYield.raw * 100).toFixed(2);
+        if (summ.fiftyTwoWeekHigh?.raw) results[t].fiftyTwoWeekHigh = summ.fiftyTwoWeekHigh.raw;
+        if (summ.fiftyTwoWeekLow?.raw) results[t].fiftyTwoWeekLow = summ.fiftyTwoWeekLow.raw;
+      }
+    } catch(e) {}
+  }));
+
+  // Cache and render
+  try { localStorage.setItem(CAL_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: results })); } catch(e) {}
+  loading.style.display = 'none';
+  body.style.display = 'grid';
+  renderCalendar(results);
+}
+
+function renderCalendar(data) {
+  const loading = document.getElementById('calLoading');
+  const body = document.getElementById('calendarBody');
+  if (!body) return;
+  if (loading) loading.style.display = 'none';
+  body.style.display = 'grid';
+
+  const today = new Date();
+  const fmt = d => d ? d.toLocaleDateString('en-CA', {month:'short',day:'numeric',year:'numeric'}) : '—';
+  const daysAway = d => d ? Math.round((d - today) / 86400000) : null;
+  const statusChip = (d) => {
+    if (!d) return '';
+    const diff = daysAway(d);
+    let color = 'var(--dim)';
+    let label = diff > 0 ? `in ${diff}d` : diff === 0 ? 'Today' : `${Math.abs(diff)}d ago`;
+    if (diff !== null && diff >= 0 && diff <= 7) color = 'var(--re)';
+    else if (diff !== null && diff >= 0 && diff <= 30) color = 'var(--yl)';
+    else if (diff !== null && diff >= 0) color = 'var(--gr)';
+    return `<span style="font-size:10px;color:${color};margin-left:6px">${label}</span>`;
+  };
+
+  // Build earnings table
+  const earningsRows = Object.entries(data)
+    .filter(([t, d]) => d?.earningsDate)
+    .sort((a, b) => a[1].earningsDate - b[1].earningsDate)
+    .map(([t, d]) => {
+      const diff = daysAway(d.earningsDate);
+      const past = diff !== null && diff < 0;
+      const rowStyle = past ? 'opacity:0.45' : '';
+      const range = d.earningsHigh && d.earningsHigh.getTime() !== d.earningsDate.getTime()
+        ? ` – ${fmt(d.earningsHigh)}` : '';
+      return `<tr style="${rowStyle}">
+        <td style="padding:6px 10px;font-weight:600;color:var(--acc)">${t}</td>
+        <td style="padding:6px 10px">${fmt(d.earningsDate)}${range}</td>
+        <td style="padding:6px 10px">${statusChip(d.earningsDate)}</td>
+      </tr>`;
+    }).join('');
+
+  // Build dividends table
+  const divRows = Object.entries(data)
+    .filter(([t, d]) => d?.exDivDate || d?.trailingAnnualDividendRate)
+    .sort((a, b) => {
+      const da = a[1]?.exDivDate || new Date(9999,0,1);
+      const db = b[1]?.exDivDate || new Date(9999,0,1);
+      return da - db;
+    })
+    .map(([t, d]) => {
+      const rate = d.trailingAnnualDividendRate ? `$${d.trailingAnnualDividendRate.toFixed(2)}/yr` : '';
+      const yld = d.dividendYield ? `${d.dividendYield}%` : '';
+      return `<tr>
+        <td style="padding:6px 10px;font-weight:600;color:var(--gr)">${t}</td>
+        <td style="padding:6px 10px">${fmt(d.exDivDate)}${statusChip(d.exDivDate)}</td>
+        <td style="padding:6px 10px">${fmt(d.dividendDate)}</td>
+        <td style="padding:6px 10px;color:var(--yl)">${rate}</td>
+        <td style="padding:6px 10px;color:var(--dim)">${yld}</td>
+      </tr>`;
+    }).join('');
+
+  // 52-week range table
+  const rangeRows = Object.entries(data)
+    .filter(([t, d]) => d?.fiftyTwoWeekHigh)
+    .map(([t, d]) => {
+      const hi = d.fiftyTwoWeekHigh?.toFixed(2) || '—';
+      const lo = d.fiftyTwoWeekLow?.toFixed(2) || '—';
+      return `<tr>
+        <td style="padding:6px 10px;font-weight:600;color:var(--acc)">${t}</td>
+        <td style="padding:6px 10px;color:var(--gr)">${lo}</td>
+        <td style="padding:6px 10px;color:var(--re)">${hi}</td>
+      </tr>`;
+    }).join('');
+
+  // Static macro calendar
+  const macroEvents = [
+    { date: '2026-03-11', event: 'US CPI (Feb)', cat: 'Inflation' },
+    { date: '2026-03-18', event: 'FOMC Meeting', cat: 'Fed' },
+    { date: '2026-03-19', event: 'FOMC Rate Decision', cat: 'Fed' },
+    { date: '2026-03-20', event: 'Bank of Canada Rate Decision', cat: 'BoC' },
+    { date: '2026-03-26', event: 'US GDP Q4 Final', cat: 'GDP' },
+    { date: '2026-03-31', event: 'Core PCE (Feb)', cat: 'Inflation' },
+    { date: '2026-04-02', event: 'US Jobs Report (Mar)', cat: 'Employment' },
+    { date: '2026-04-08', event: 'Bank of Canada Rate Decision', cat: 'BoC' },
+    { date: '2026-04-15', event: 'US CPI (Mar)', cat: 'Inflation' },
+    { date: '2026-04-29', event: 'FOMC Meeting', cat: 'Fed' },
+    { date: '2026-04-30', event: 'US GDP Q1 Advance', cat: 'GDP' },
+    { date: '2026-05-07', event: 'Bank of Canada Rate Decision', cat: 'BoC' },
+    { date: '2026-06-03', event: 'FOMC Meeting', cat: 'Fed' },
+  ];
+  const catCol = { Inflation:'var(--yl)', Fed:'var(--re)', BoC:'var(--gr)', GDP:'var(--acc)', Employment:'var(--yl)' };
+  const macroRows = macroEvents.map(ev => {
+    const d = new Date(ev.date + 'T12:00:00');
+    const diff = daysAway(d);
+    const past = diff !== null && diff < 0;
+    return `<tr style="${past ? 'opacity:0.45' : ''}">
+      <td style="padding:6px 10px">${fmt(d)}${statusChip(d)}</td>
+      <td style="padding:6px 10px">${ev.event}</td>
+      <td style="padding:6px 10px"><span style="color:${catCol[ev.cat]||'var(--dim)';font-size:10px}">${ev.cat}</span></td>
+    </tr>`;
+  }).join('');
+
+  const tblStyle = 'width:100%;border-collapse:collapse;font-size:12px';
+  const thStyle = 'padding:6px 10px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--bd);text-align:left';
+
+  body.innerHTML = `
+    <div class="card">
+      <div class="card-header"><div class="card-title">⬡ Earnings Calendar</div></div>
+      ${earningsRows ? `<table style="${tblStyle}"><thead><tr><th style="${thStyle}">Ticker</th><th style="${thStyle}">Expected Date</th><th style="${thStyle}">Status</th></tr></thead><tbody>${earningsRows}</tbody></table>` : '<div style="padding:12px 10px;color:var(--dim);font-size:12px">No upcoming earnings data available</div>'}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">◎ Macro Calendar</div></div>
+      <table style="${tblStyle}"><thead><tr><th style="${thStyle}">Date</th><th style="${thStyle}">Event</th><th style="${thStyle}">Category</th></tr></thead><tbody>${macroRows}</tbody></table>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">◁ Dividend Schedule</div></div>
+      ${divRows ? `<table style="${tblStyle}"><thead><tr><th style="${thStyle}">Ticker</th><th style="${thStyle}">Ex-Div Date</th><th style="${thStyle}">Pay Date</th><th style="${thStyle}">Annual Rate</th><th style="${thStyle}">Yield</th></tr></thead><tbody>${divRows}</tbody></table>` : '<div style="padding:12px 10px;color:var(--dim);font-size:12px">No dividend data available</div>'}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">◻ 52-Week Range</div></div>
+      ${rangeRows ? `<table style="${tblStyle}"><thead><tr><th style="${thStyle}">Ticker</th><th style="${thStyle}">52W Low</th><th style="${thStyle}">52W High</th></tr></thead><tbody>${rangeRows}</tbody></table>` : '<div style="padding:12px 10px;color:var(--dim);font-size:12px">No range data available</div>'}
+    </div>
+  `;
+}
 
 </script>
 
