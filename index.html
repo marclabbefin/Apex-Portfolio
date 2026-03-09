@@ -3240,7 +3240,7 @@ function renderCalendar(data) {
     return `<tr style="${past ? 'opacity:0.45' : ''}">
       <td style="padding:6px 10px">${fmt(d)}${statusChip(d)}</td>
       <td style="padding:6px 10px">${ev.event}</td>
-      <td style="padding:6px 10px"><span style="color:${catCol[ev.cat]||'var(--dim)';font-size:10px}">${ev.cat}</span></td>
+      <td style="padding:6px 10px"><span style="color:${catCol[ev.cat]||'var(--dim)'};font-size:10px">${ev.cat}</span></td>
     </tr>`;
   }).join('');
 
