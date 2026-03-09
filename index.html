@@ -1599,7 +1599,6 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
     </div>
   </div>
 
-</div><!-- /layout -->
 
   <!-- ═══════════════ RESEARCH LINKS PAGE ═══════════════ -->
   <div id="page-research" class="main">
@@ -1610,7 +1609,7 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
       </div>
       <button class="refresh-btn" onclick="initResearchLinks()">↺ Refresh</button>
     </div>
-    <div id="researchGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding-bottom:24px;"></div>
+    <div id="researchGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding-bottom:24px;"></div>
   </div>
 
   <!-- ═══════════════ KEY DATES / CALENDAR PAGE ═══════════════ -->
@@ -1625,9 +1624,10 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
     <div id="calLoading" style="text-align:center;padding:40px 0;color:var(--dim);display:none">
       <div style="font-size:22px;margin-bottom:8px">⟳</div>Loading calendar data…
     </div>
-    <div id="calendarBody" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-bottom:24px;align-items:start;"></div>
+    <div id="calendarBody" style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:12px;padding-bottom:24px;align-items:start;"></div>
   </div>
 
+</div><!-- /layout -->
 <!-- STATUS BAR -->
 <div class="statusbar">
   <div class="status-item">
