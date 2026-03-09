@@ -1733,7 +1733,7 @@ async function fetchPrice(symbol) {
       currency: meta.currency || 'USD',
       name: meta.shortName || symbol
     };
-  } catch { return null; }
+  } catch(e) { return null; }
 }
 
 let priceCache = {};
@@ -1887,7 +1887,7 @@ async function loadPositions() {
   try {
     const r = (() => { try { const v = localStorage.getItem('apex-positions'); return v ? {value: v} : null; } catch(e) { return null; } })();
     if (r) return JSON.parse(r.value);
-  } catch {}
+  } catch(e) {}
   // defaults from known data
   return {
     'NVDA':       { shares: 13,   avgCost: 208.12 },
@@ -1909,7 +1909,7 @@ async function loadPositions() {
 }
 
 async function savePositions(pos) {
-  try { try { localStorage.setItem('apex-positions', JSON.stringify(pos)); } catch(e) {} } catch {}
+  try { try { localStorage.setItem('apex-positions', JSON.stringify(pos)); } catch(e) {} } catch(e) {}
 }
 
 let positions = {};
@@ -2145,7 +2145,7 @@ async function loadSnapshots() {
     const r = (() => { try { const v = localStorage.getItem('apex-snapshots'); return v ? {value: v} : null; } catch(e) { return null; } })();
     const snaps = r ? JSON.parse(r.value) : [];
     renderSnapshots(snaps);
-  } catch { renderSnapshots([]); }
+  } catch(e) { renderSnapshots([]); }
 }
 
 async function saveSnapshot() {
@@ -2176,7 +2176,7 @@ async function deleteSnapshot(i) {
     snaps.splice(i, 1);
     try { localStorage.setItem('apex-snapshots', JSON.stringify(snaps)); } catch(e) {}
     renderSnapshots(snaps);
-  } catch {}
+  } catch(e) {}
 }
 
 function renderSnapshots(snaps) {
@@ -2376,7 +2376,7 @@ async function fetchNewsForPortfolio() {
 
   try {
     try { localStorage.setItem('apex-news-cache', JSON.stringify({ items: allNewsItems, fetchedAt: new Date().toISOString() })); } catch(e) {}
-  } catch {}
+  } catch(e) {}
 
   loading.style.display = 'none';
   btn.disabled = false;
@@ -2404,25 +2404,26 @@ Return ONLY a valid JSON array (no markdown, no backticks, no preamble) of exact
 - impact low  = background/general info
 - Be specific, reference real recent events you actually find`;
 
-  const key = localStorage.getItem('apex-api-key') || '';
-  if (!key) { showPage('settings'); throw new Error('No API key — go to Settings first.'); }
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body: JSON.stringify({
-      model:'claude-sonnet-4-20250514',
-      max_tokens:1000,
-      tools:[{type:'web_search_20250305',name:'web_search'}],
-      messages:[{role:'user',content:prompt}]
-    })
-  });
-  if (!res.ok) throw new Error('API ' + res.status);
-  const data = await res.json();
-  const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-  const clean = text.replace(/```json|```/g,'').trim();
-  const match = clean.match(/\[[\s\S]*\]/);
-  if (!match) return [];
-  return JSON.parse(match[0]).map(item=>({...item, id:Math.random().toString(36).slice(2)}));
+  try {
+    const key = localStorage.getItem('apex-api-key') || '';
+    if (!key) { showPage('settings'); return []; }
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const clean = text.replace(/```json|```/g,'').trim();
+    const match = clean.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    return JSON.parse(match[0]).map(item=>({...item, id:Math.random().toString(36).slice(2)}));
   } catch(e) { console.error('News fetch error:',e); return []; }
 }
 
@@ -2542,7 +2543,7 @@ async function loadCachedNews() {
       document.getElementById('newsEmpty').style.display = 'none';
       document.getElementById('newsFetchBtn').textContent = '◎ Refresh News';
     }
-  } catch {}
+  } catch(e) {}
 }
 
 
@@ -2703,7 +2704,7 @@ async function saveBriefingHistory(entry) {
     const hist = r ? JSON.parse(r.value) : [];
     hist.unshift(entry);
     try { localStorage.setItem('apex-briefings', JSON.stringify(hist.slice(0,7))); } catch(e) {}
-  } catch {}
+  } catch(e) {}
 }
 
 async function loadBriefingHistory() {
@@ -2720,7 +2721,7 @@ async function loadBriefingHistory() {
         <div style="flex:1;color:var(--dim)">${h.brief?.summary?.substring(0,80)||''}...</div>
         <div style="color:var(--dim)">›</div>
       </div>`).join('');
-  } catch {}
+  } catch(e) {}
 }
 
 async function loadHistoricalBrief(i) {
@@ -2732,7 +2733,7 @@ async function loadHistoricalBrief(i) {
     document.getElementById('briefEmpty').style.display = 'none';
     document.getElementById('briefContent').style.display = 'block';
     document.getElementById('briefContent').scrollIntoView({behavior:'smooth'});
-  } catch {}
+  } catch(e) {}
 }
 
 // ── CHARTS ──────────────────────────────────
@@ -2961,5 +2962,6 @@ fetchAllPrices();
 setInterval(fetchAllPrices, 5 * 60 * 1000);
 
 </script>
+
 </body>
 </html>
