@@ -3003,10 +3003,10 @@ setInterval(fetchAllPrices, 5 * 60 * 1000);
 // ══════════════════════════════════════════════════════
 // RESEARCH LINKS MODULE
 // ══════════════════════════════════════════════════════
-function initResearchLinks() {
+async function initResearchLinks() {
   const grid = document.getElementById('researchGrid');
   if (!grid) return;
-  const pos = loadPositions();
+  const pos = await loadPositions();
   const tickers = Object.keys(pos).filter(t => t !== 'CASH');
 
   // Define link sources per ticker
@@ -3092,7 +3092,7 @@ async function fetchCalendarData() {
   loading.style.display = 'block';
   body.style.display = 'none';
 
-  const pos = loadPositions();
+  const pos = await loadPositions();
   const tickers = Object.keys(pos).filter(t => t !== 'CASH');
   const results = {};
 
