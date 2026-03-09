@@ -9,7 +9,7 @@
 /* ── Reset & Variables ── */
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-:root {
+:root {h
   --bg:       #07080d;
   --s1:       #0c0d14;
   --s2:       #11121c;
@@ -913,7 +913,7 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
     <div class="page-header">
       <div>
         <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Portfolio overview · Live prices · March 8, 2026</div>
+        <div class="page-subtitle">Portfolio overview · Live prices · <span id="dashDate"></span></div>
       </div>
       <div class="last-updated">Last updated: <span id="lastUpdated">—</span></div>
     </div>
@@ -1670,6 +1670,8 @@ function showPage(id) {
 function updateClock() {
   const now = new Date();
   document.getElementById('clockTime').textContent = now.toLocaleTimeString('en-CA', { hour12: false });
+  const dashDateEl = document.getElementById('dashDate');
+  if (dashDateEl) dashDateEl.textContent = now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   document.getElementById('clockDate').textContent = now.toLocaleDateString('en-CA', { month:'short', day:'numeric' });
 }
 setInterval(updateClock, 1000);
@@ -1719,7 +1721,7 @@ function renderHoldingsSkeleton() {
 // ── Fetch prices via Yahoo Finance proxy ──
 async function fetchPrice(symbol) {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d&includePrePost=false`;
+    const url = `https://corsproxy.io/?url=https%3A%2F%2Fquery1.finance.yahoo.com%2Fv8%2Ffinance%2Fchart%2F${encodeURIComponent(symbol)}%3Finterval%3D1d%26range%3D1d%26includePrePost%3Dfalse`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     const data = await res.json();
@@ -2791,7 +2793,7 @@ async function loadChart(sym) {
   document.getElementById('chartTitle').textContent = `${h?.label||sym} · Price History`;
 
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=${activeChartRange}`;
+    const url = `https://corsproxy.io/?url=https%3A%2F%2Fquery1.finance.yahoo.com%2Fv8%2Ffinance%2Fchart%2F${encodeURIComponent(sym)}%3Finterval%3D1d%26range%3D${activeChartRange}`;
     const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
     const data = await res.json();
     const result = data?.chart?.result?.[0];
