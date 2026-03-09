@@ -1727,11 +1727,12 @@ async function fetchPrice(symbol) {
     const data = await res.json();
     const meta = data?.chart?.result?.[0]?.meta;
     if (!meta) return null;
+    const prev = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
     return {
-      price: meta.regularMarketPrice || meta.previousClose,
-      prev:  meta.previousClose,
-      change: (meta.regularMarketPrice - meta.previousClose),
-      changePct: ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose * 100),
+      price: meta.regularMarketPrice || prev,
+      prev:  prev,
+      change: (meta.regularMarketPrice - prev),
+      changePct: ((meta.regularMarketPrice - prev) / prev * 100),
       currency: meta.currency || 'USD',
       name: meta.shortName || symbol
     };
