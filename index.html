@@ -1654,11 +1654,10 @@ function showPage(id) {
     if (el.getAttribute('onclick') && el.getAttribute('onclick').includes("'" + id + "'")) el.classList.add('active');
   });
   // Page-specific inits
-  if (id === 'tracker') {
-    renderPortfolioTracker();
+  if (id === 'portfolio' || id === 'tracker') {
+    initPortfolioTracker();
     renderDriftAnalysis();
     renderWaterfall();
-    renderSnapshotList();
   }
   if (id === 'charts') { try { initCharts(); } catch(e) {} }
   if (id === 'briefing') { try { loadBriefingHistory(); } catch(e) {} }
