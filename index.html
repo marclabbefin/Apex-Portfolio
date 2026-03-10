@@ -1915,12 +1915,14 @@ function ptShowDropdown(rowId, quotes) {
   const dd = document.createElement('div');
   dd.id = 'pt-dd-' + rowId;
   dd.style.cssText = 'position:absolute;z-index:9999;background:var(--bg2);border:1px solid var(--acc);border-radius:8px;min-width:320px;max-height:280px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)';
-  dd.innerHTML = quotes.map(q => {
-    const name = (q.longname || q.shortname || q.symbol).replace(/</g,'&lt;');
+  dd.innerHTML = quotes.map((q, qi) => {
+    const name = (q.longname || q.shortname || q.symbol).replace(/</g,'&lt;').replace(/"/g,'&quot;');
     const sym  = q.symbol;
     const type = q.quoteType || '';
     const exch = q.exchDisp || q.exchange || '';
-    return `<div class="pt-dd-item" onclick="ptSelectTicker('${rowId}','${sym.replace(/'/g,'\\'')}','${name.replace(/'/g,'\\'').replace(/"/g,'')}','${q.currency||'USD'}')"
+    const cur  = q.currency || 'USD';
+    return `<div class="pt-dd-item"
+      data-row="${rowId}" data-sym="${sym}" data-name="${name}" data-cur="${cur}"
       style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px"
       onmouseover="this.style.background='var(--acc)20'"
       onmouseout="this.style.background=''">
@@ -1934,6 +1936,11 @@ function ptShowDropdown(rowId, quotes) {
       </div>
     </div>`;
   }).join('');
+  // Use event delegation instead of inline onclick
+  dd.addEventListener('click', e => {
+    const item = e.target.closest('.pt-dd-item');
+    if (item) ptSelectTicker(item.dataset.row, item.dataset.sym, item.dataset.name, item.dataset.cur);
+  });
   // Position relative to input
   const rect = inputEl.getBoundingClientRect();
   const mainEl = document.getElementById('page-portfolio');
