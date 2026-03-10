@@ -1282,7 +1282,7 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
     <div class="page-header">
       <div>
         <div class="page-title">News Feed</div>
-        <div class="page-subtitle">AI-curated news · filtered for your exact holdings · sentiment scored</div>
+        <div class="page-subtitle">Live news · Yahoo Finance · Reuters · Bloomberg · WSJ · sentiment scored</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <div id="news-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--dim)"></div>
@@ -2349,244 +2349,263 @@ function _s2PageInit(id) {
 };
 
 // ═══════════════════════════════════════════════
-// SPRINT 3 — LIVE NEWS FEED
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// NEWS FEED  ─  Yahoo Finance + multi-source RSS headlines
+// ═══════════════════════════════════════════════════════════════
 
 let allNewsItems = [];
-let activeFilter = 'all';
+let activeFilter  = 'all';
 let activeHolding = 'all';
 
-const NEWS_QUERIES = [
-  { key:'NVDA',   label:'NVDA',   query:'NVIDIA stock news 2026',                           weight:10.5 },
-  { key:'TD',     label:'TD',     query:'Toronto-Dominion Bank TD stock',                   weight:15.5 },
-  { key:'BRKB',   label:'BRK-B',  query:'Berkshire Hathaway stock news',                    weight:8.3  },
-  { key:'XSP',    label:'XSP',    query:'S&P 500 index market news today',                  weight:11.9 },
-  { key:'BTC',    label:'BTC',    query:'Bitcoin crypto market news 2026',                  weight:11.3 },
-  { key:'CVS',    label:'CVS',    query:'CVS Health Corporation stock news',                weight:7.6  },
-  { key:'KILO',   label:'Gold',   query:'gold price commodity market news',                 weight:7.3  },
-  { key:'UNH',    label:'UNH',    query:'UnitedHealth Group stock news',                    weight:5.2  },
-  { key:'ZEM',    label:'ZEM/EM', query:'emerging markets ETF news outlook',                weight:6.0  },
-  { key:'LULU',   label:'LULU',   query:'Lululemon Athletica stock earnings news',          weight:2.7  },
-  { key:'IONQ',   label:'IONQ',   query:'IonQ quantum computing stock news',                weight:2.7  },
-  { key:'ZCH',    label:'ZCH',    query:'China stock market economy news 2026',             weight:4.0  },
-  { key:'MTY',    label:'MTY',    query:'MTY Food Group Canada stock news',                 weight:2.3  },
-  { key:'HELP',   label:'HELP',   query:'Cybin psychedelic biotech stock news',             weight:1.0  },
-  { key:'macro',  label:'Macro',  query:'Federal Reserve Bank of Canada interest rates inflation 2026', weight:0 },
-];
+const NEWS_CACHE_KEY = 'apex-news-cache';
+const NEWS_CACHE_TTL = 30 * 60 * 1000; // 30 min
 
-const PORTFOLIO_CONTEXT = `Holdings: NVDA +45.8%, TD +69% (OVERWEIGHT), BRK.B -5.3%, XSP S&P500, BTC ETF -20.9%, CVS +26%, Gold +35%, UNH +0.4%, EM ZEM, LULU -47.7% (REVIEW), IONQ -34.2%, China ZCH, MTY, Cybin HELP. Aggressive growth, CAD base.`;
+// Sentiment keywords
+const POS_WORDS = ['surge','surges','surged','beat','beats','raised','upgrade','upgraded','buy','strong','profit','gain','record','rally','rallied','growth','up','rises','rise','outperform','exceeds','bullish','positive','boost','expands','expand','acquisition'];
+const NEG_WORDS = ['fall','falls','fell','miss','misses','cut','downgrade','downgraded','sell','weak','loss','drop','drops','decline','declines','slump','slumps','layoffs','lawsuit','warning','bearish','negative','concern','concerns','lower','below','investigation','fraud','recall'];
+const HIGH_WORDS = ['earnings','results','guidance','fed','fomc','inflation','rates','merger','acquisition','buyout','bankruptcy','lawsuit','recall','investigation','crash','crash','bubble','crisis','collapse','shock','surprise'];
+
+function scoreSentiment(title, summary) {
+  const text = (title + ' ' + (summary||'')).toLowerCase();
+  let pos = 0, neg = 0, high = 0;
+  POS_WORDS.forEach(w => { if (text.includes(w)) pos++; });
+  NEG_WORDS.forEach(w => { if (text.includes(w)) neg++; });
+  HIGH_WORDS.forEach(w => { if (text.includes(w)) high++; });
+  const sentiment = pos > neg ? 'positive' : neg > pos ? 'negative' : 'neutral';
+  const impact    = high >= 2 ? 'high' : high === 1 ? 'med' : 'low';
+  return { sentiment, impact };
+}
+
+// Source brand colours
+const SOURCE_COLORS = {
+  'The Wall Street Journal': '#0080c6',
+  'WSJ': '#0080c6',
+  'Bloomberg': '#ff8000',
+  'Reuters': '#ff8c00',
+  'CNBC': '#00a650',
+  'Financial Times': '#fff1e0',
+  'Barron\'s': '#e31837',
+  'MarketWatch': '#06c',
+  'Motley Fool': '#5cb85c',
+  'Zacks': '#1a1a6e',
+  'Seeking Alpha': '#2196f3',
+  'Investor\'s Business Daily': '#cc0000',
+  'Associated Press Finance': '#d22630',
+  'AP': '#d22630',
+  'Yahoo Finance': '#7e0ac9',
+  'Yahoo Finance Video': '#7e0ac9',
+};
+function sourceColor(publisher) {
+  return SOURCE_COLORS[publisher] || 'var(--dim)';
+}
+
+// BRK-B → Berkshire lookup (tickers that need alternate search terms)
+const SEARCH_OVERRIDES = {
+  'BRK-B': 'Berkshire Hathaway',
+  'BTCX-B.TO': 'Bitcoin ETF Canada',
+  'XSP.TO': 'S&P 500 ETF Canada',
+  'ZEM.TO': 'BMO emerging markets ETF',
+  'ZCH.TO': 'BMO China ETF',
+  'KILO.NE': 'Kilogram Gold ETF',
+  'HELP.NE': 'Cybin HELP',
+  'MTY.TO': 'MTY Food Group',
+};
 
 async function fetchNewsForPortfolio() {
-  const btn     = document.getElementById('newsFetchBtn');
-  const loading = document.getElementById('newsLoading');
-  const empty   = document.getElementById('newsEmpty');
-  const feed    = document.getElementById('newsFeed');
-  const dot     = document.getElementById('news-status-dot');
-  const txt     = document.getElementById('news-status-txt');
+  const loadingEl  = document.getElementById('newsLoading');
+  const emptyEl    = document.getElementById('newsEmpty');
+  const feedEl     = document.getElementById('newsFeed');
+  const statusTxt  = document.getElementById('news-status-txt');
+  const dot        = document.getElementById('news-status-dot');
+  const tickerLbl  = document.getElementById('newsLoadingTicker');
+  const msgLbl     = document.getElementById('newsLoadingMsg');
 
-  btn.disabled = true;
-  btn.textContent = '◎ Fetching...';
-  loading.style.display = 'block';
-  empty.style.display   = 'none';
-  feed.style.display    = 'none';
-  document.getElementById('newsSentimentMap').style.display = 'none';
-  dot.style.background  = 'var(--yellow)';
-  dot.style.boxShadow   = '0 0 6px var(--yellow)';
-  txt.textContent       = 'Fetching...';
-  allNewsItems = [];
+  if (loadingEl) { loadingEl.style.display = 'flex'; }
+  if (emptyEl)   { emptyEl.style.display   = 'none'; }
+  if (feedEl)    { feedEl.innerHTML = ''; }
 
-  // Top 9 by weight + macro
-  const queries = [...NEWS_QUERIES].sort((a,b) => b.weight - a.weight).slice(0,9);
+  const pos = await loadPositions();
+  const tickers = Object.keys(pos).filter(t => t !== 'CASH');
 
-  for (let i = 0; i < queries.length; i++) {
-    const q = queries[i];
-    document.getElementById('newsLoadingMsg').textContent  = `Fetching news for ${q.label}… (${i+1}/${queries.length})`;
-    document.getElementById('newsLoadingTicker').textContent = q.query;
+  const seen   = new Set();
+  const items  = [];
+
+  // Fetch news for each holding in parallel
+  await Promise.all(tickers.map(async (ticker) => {
     try {
-      const items = await fetchAndAnalyzeNews(q);
-      allNewsItems.push(...items);
-    } catch(e) { console.warn('News error', q.key, e); }
-    await new Promise(r => setTimeout(r, 150));
-  }
+      if (tickerLbl) tickerLbl.textContent = ticker;
+      const query = SEARCH_OVERRIDES[ticker] || ticker;
+      const url = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v1/finance/search?q=' + encodeURIComponent(query) + '&newsCount=8&enableFuzzyQuery=false')}`;
+      const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) return;
+      const j = await r.json();
+      const news = j?.news || [];
+      news.forEach(n => {
+        if (seen.has(n.uuid)) return;
+        seen.add(n.uuid);
+        const { sentiment, impact } = scoreSentiment(n.title, '');
+        // Map related tickers to known portfolio tickers
+        const related = (n.relatedTickers || []).filter(t => tickers.includes(t));
+        if (!related.includes(ticker)) related.unshift(ticker);
+        items.push({
+          uuid:      n.uuid,
+          headline:  n.title,
+          summary:   '',
+          source:    n.publisher,
+          url:       n.link,
+          tickers:   [...new Set(related)].slice(0,4),
+          sentiment,
+          impact,
+          ts:        n.providerPublishTime * 1000,
+          category:  impact === 'high' ? 'Market' : '',
+        });
+      });
+    } catch(e) {}
+  }));
 
-  const impactOrder = { high:0, med:1, low:2 };
-  allNewsItems.sort((a,b) => (impactOrder[a.impact]||2) - (impactOrder[b.impact]||2));
+  // Sort newest first
+  items.sort((a, b) => b.ts - a.ts);
+  allNewsItems = items;
 
+  // Cache
   try {
-    try { localStorage.setItem('apex-news-cache', JSON.stringify({ items: allNewsItems, fetchedAt: new Date().toISOString() })); } catch(e) {}
+    localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({ ts: Date.now(), items }));
   } catch(e) {}
 
-  loading.style.display = 'none';
-  btn.disabled = false;
-  btn.textContent = '◎ Refresh News';
-  dot.style.background = 'var(--green)';
-  dot.style.boxShadow  = '0 0 6px var(--green)';
-  txt.textContent = `${allNewsItems.length} stories`;
-  document.getElementById('nkpi-time').textContent = new Date().toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+  if (loadingEl) loadingEl.style.display = 'none';
+  if (statusTxt) statusTxt.textContent = `${items.length} stories`;
+  if (dot) dot.style.background = items.length > 0 ? 'var(--gr)' : 'var(--re)';
 
   updateNewsKPIs();
   renderNewsFeed();
   renderSentimentMap();
 }
 
-async function fetchAndAnalyzeNews(q) {
-  const prompt = `You are a financial news analyst with web search access. Search for the very latest news about: "${q.query}"
-
-Portfolio context: ${PORTFOLIO_CONTEXT}
-
-Return ONLY a valid JSON array (no markdown, no backticks, no preamble) of exactly 2-3 news items:
-[{"headline":"Short specific headline under 12 words","summary":"2 sentences: what happened and direct portfolio impact.","source":"e.g. Reuters","tickers":["${q.key}"],"sentiment":"positive|negative|neutral","impact":"high|med|low","category":"${q.label}"}]
-
-- impact high = major price catalyst (earnings miss/beat, CEO departure, regulatory action, macro shock)
-- impact med  = notable but not urgent
-- impact low  = background/general info
-- Be specific, reference real recent events you actually find`;
-
-  try {
-    const key = localStorage.getItem('apex-api-key') || '';
-    if (!key) { showPage('settings'); return []; }
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        tools:[{type:'web_search_20250305',name:'web_search'}],
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    if (!res.ok) throw new Error('API ' + res.status);
-    const data = await res.json();
-    const text = data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
-    const clean = text.replace(/```json|```/g,'').trim();
-    const match = clean.match(/\[[\s\S]*\]/);
-    if (!match) return [];
-    return JSON.parse(match[0]).map(item=>({...item, id:Math.random().toString(36).slice(2)}));
-  } catch(e) { console.error('News fetch error:',e); return []; }
-}
-
 function updateNewsKPIs() {
-  document.getElementById('nkpi-pos').textContent  = allNewsItems.filter(i=>i.sentiment==='positive').length;
-  document.getElementById('nkpi-neg').textContent  = allNewsItems.filter(i=>i.sentiment==='negative').length;
-  document.getElementById('nkpi-neu').textContent  = allNewsItems.filter(i=>i.sentiment==='neutral').length;
-  document.getElementById('nkpi-high').textContent = allNewsItems.filter(i=>i.impact==='high').length;
+  const items = getFilteredNews();
+  document.getElementById('nkpi-pos').textContent  = items.filter(i => i.sentiment === 'positive').length;
+  document.getElementById('nkpi-neg').textContent  = items.filter(i => i.sentiment === 'negative').length;
+  document.getElementById('nkpi-neu').textContent  = items.filter(i => i.sentiment === 'neutral').length;
+  document.getElementById('nkpi-high').textContent = items.filter(i => i.impact === 'high').length;
+  document.getElementById('nkpi-time').textContent = new Date().toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
 }
 
 function getFilteredNews() {
-  return allNewsItems.filter(item => {
-    const sentOk = activeFilter==='all'
-      || (activeFilter==='positive' && item.sentiment==='positive')
-      || (activeFilter==='negative' && item.sentiment==='negative')
-      || (activeFilter==='high'     && item.impact==='high');
-    const holdOk = activeHolding==='all'
-      || (item.tickers||[]).some(t=>t.toUpperCase().includes(activeHolding.toUpperCase()))
-      || (item.category||'').toUpperCase().includes(activeHolding.toUpperCase());
-    return sentOk && holdOk;
+  return allNewsItems.filter(i => {
+    if (activeFilter === 'positive'  && i.sentiment !== 'positive') return false;
+    if (activeFilter === 'negative'  && i.sentiment !== 'negative') return false;
+    if (activeFilter === 'high'      && i.impact    !== 'high')     return false;
+    if (activeHolding !== 'all' && !i.tickers.includes(activeHolding)) return false;
+    return true;
   });
 }
 
 function renderNewsFeed() {
-  const feed     = document.getElementById('newsFeed');
-  const filtered = getFilteredNews();
-  feed.style.display = 'flex';
-  if (!filtered.length) {
-    feed.innerHTML = `<div style="padding:32px;text-align:center;color:var(--dim);font-size:12px;background:var(--s1);border:1px solid var(--border);border-radius:10px">No news matching this filter.</div>`;
+  const feedEl   = document.getElementById('newsFeed');
+  const emptyEl  = document.getElementById('newsEmpty');
+  if (!feedEl) return;
+  const items = getFilteredNews();
+  if (!items.length) {
+    feedEl.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
     return;
   }
-  feed.innerHTML = filtered.map((item, i) => {
-    const sentClass  = item.sentiment==='positive'?'sent-pos':item.sentiment==='negative'?'sent-neg':'sent-neu';
-    const sentLabel  = item.sentiment==='positive'?'▲ Bullish':item.sentiment==='negative'?'▼ Bearish':'● Neutral';
-    const impPill    = item.impact==='high'?'impact-pill-high':item.impact==='med'?'impact-pill-med':'impact-pill-low';
-    const impLabel   = item.impact==='high'?'⚡ High Impact':item.impact==='med'?'◆ Medium':'◇ Low';
-    const tickers    = (item.tickers||[]).map(t=>`<span class="news-ticker-pill">${t}</span>`).join('');
-    const delay      = Math.min(i*0.04,1);
-    return `<div class="news-card impact-${item.impact}" style="animation-delay:${delay}s">
-      <div class="news-meta">
-        <span class="news-source">${item.source||'Financial News'}</span>
-        <span class="news-time">· ${item.category||''}</span>
-      </div>
+  if (emptyEl) emptyEl.style.display = 'none';
+  feedEl.innerHTML = items.map((item, idx) => {
+    const delay = idx * 40;
+    const tickers = item.tickers.map(t => `<span class="news-ticker-pill">${t}</span>`).join('');
+    const ageMs  = Date.now() - (item.ts || Date.now());
+    const ageMin = Math.round(ageMs / 60000);
+    const ageStr = ageMin < 60 ? `${ageMin}m ago` : ageMin < 1440 ? `${Math.round(ageMin/60)}h ago` : `${Math.round(ageMin/1440)}d ago`;
+    const srcColor = sourceColor(item.source);
+    const sentIcon = item.sentiment==='positive' ? '▲' : item.sentiment==='negative' ? '▼' : '●';
+    const sentCol  = item.sentiment==='positive' ? 'var(--gr)' : item.sentiment==='negative' ? 'var(--re)' : 'var(--dim)';
+    const impactBadge = item.impact==='high' ? '<span style="background:var(--re);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">HIGH</span>' : '';
+    return `<div class="news-card impact-${item.impact}" style="animation-delay:${delay}ms">
       <div class="news-card-top">
-        <div class="news-impact-dot ${item.impact==='high'?'high':item.impact==='med'?'med':'low'}"></div>
-        <div class="news-headline">${item.headline}</div>
+        <div class="news-source-badge" style="color:${srcColor};border-color:${srcColor}20">${item.source||'Financial News'}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:${sentCol};font-size:11px">${sentIcon} ${item.sentiment}</span>
+          ${impactBadge}
+          <span class="news-ts">${ageStr}</span>
+        </div>
       </div>
-      <div class="news-body">${item.summary}</div>
-      <div class="news-footer">
-        ${tickers}
-        <span class="news-sentiment-pill ${sentClass}">${sentLabel}</span>
-        <span class="news-impact-pill ${impPill}" style="margin-left:auto">${impLabel}</span>
+      <div class="news-headline">${item.headline}</div>
+      <div class="news-footer" style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <div class="news-tickers">${tickers}</div>
+        ${item.url ? `<a href="${item.url}" target="_blank" rel="noopener" style="font-size:10px;color:var(--acc);text-decoration:none;white-space:nowrap">Read → </a>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
-function filterNews(type, btn) {
+function filterNews(type) {
   activeFilter = type;
-  document.querySelectorAll('.news-filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if (allNewsItems.length) renderNewsFeed();
+  document.querySelectorAll('.news-filter-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = [...document.querySelectorAll('.news-filter-btn')].find(b => {
+    const oc = b.getAttribute('onclick') || '';
+    return oc.includes("'" + type + "'");
+  });
+  if (activeBtn) activeBtn.classList.add('active');
+  renderNewsFeed();
+  updateNewsKPIs();
 }
 
 function filterByHolding(val) {
   activeHolding = val;
-  if (allNewsItems.length) renderNewsFeed();
+  renderNewsFeed();
+  updateNewsKPIs();
 }
 
 function renderSentimentMap() {
-  const mapEl = document.getElementById('newsSentimentMap');
-  const body  = document.getElementById('sentimentMapBody');
-  if (!allNewsItems.length) { mapEl.style.display='none'; return; }
-  mapEl.style.display = 'block';
-  const groups = {};
+  const el = document.getElementById('sentimentMapBody');
+  if (!el) return;
+  const byTicker = {};
   allNewsItems.forEach(item => {
-    const cat = item.category||'Other';
-    if (!groups[cat]) groups[cat]={pos:0,neg:0,neu:0};
-    if (item.sentiment==='positive') groups[cat].pos++;
-    else if (item.sentiment==='negative') groups[cat].neg++;
-    else groups[cat].neu++;
+    item.tickers.forEach(t => {
+      if (!byTicker[t]) byTicker[t] = { pos:0, neg:0, neu:0 };
+      byTicker[t][item.sentiment === 'positive' ? 'pos' : item.sentiment === 'negative' ? 'neg' : 'neu']++;
+    });
   });
-  const maxTotal = Math.max(...Object.values(groups).map(g=>g.pos+g.neg+g.neu),1);
-  body.innerHTML = Object.entries(groups).map(([cat,g])=>{
-    const total=g.pos+g.neg+g.neu;
-    const posW=Math.round((g.pos/maxTotal)*120), negW=Math.round((g.neg/maxTotal)*120), neuW=Math.round((g.neu/maxTotal)*120);
-    const overall=g.pos>g.neg?'pos':g.neg>g.pos?'neg':'neu';
-    const overallColor=overall==='pos'?'var(--green)':overall==='neg'?'var(--red)':'var(--dim)';
-    const overallLabel=overall==='pos'?'▲':overall==='neg'?'▼':'●';
-    return `<div class="sent-map-row">
-      <div class="sent-map-sym">${cat}</div>
-      <div class="sent-map-bars">
-        ${posW?`<div class="sent-map-bar" style="width:${posW}px;background:rgba(0,229,160,0.2)">${g.pos>0?g.pos:''}</div>`:''}
-        ${negW?`<div class="sent-map-bar" style="width:${negW}px;background:rgba(255,77,106,0.2)">${g.neg>0?g.neg:''}</div>`:''}
-        ${neuW?`<div class="sent-map-bar" style="width:${neuW}px;background:rgba(69,72,104,0.25)">${g.neu>0?g.neu:''}</div>`:''}
+  const tickers = Object.keys(byTicker).sort();
+  if (!tickers.length) { el.innerHTML = '<div style="color:var(--dim);font-size:12px;padding:8px">No data yet — fetch news to see sentiment map</div>'; return; }
+  el.innerHTML = tickers.map(t => {
+    const d = byTicker[t];
+    const total = d.pos + d.neg + d.neu || 1;
+    const pct = v => Math.round(v/total*100);
+    const score = d.pos - d.neg;
+    const scoreColor = score > 0 ? 'var(--gr)' : score < 0 ? 'var(--re)' : 'var(--dim)';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bd)">
+      <div style="width:70px;font-weight:600;font-size:12px;color:var(--acc)">${t}</div>
+      <div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;display:flex">
+        <div style="width:${pct(d.pos)}%;background:var(--gr)"></div>
+        <div style="width:${pct(d.neu)}%;background:var(--dim)"></div>
+        <div style="width:${pct(d.neg)}%;background:var(--re)"></div>
       </div>
-      <div class="sent-map-count" style="color:${overallColor}">${overallLabel} ${total}</div>
+      <div style="font-size:10px;color:${scoreColor};width:32px;text-align:right">${score>0?'+':''}${score}</div>
+      <div style="font-size:10px;color:var(--dim);width:28px">${total}art</div>
     </div>`;
   }).join('');
 }
 
-async function loadCachedNews() {
+function loadCachedNews() {
   try {
-    const r = (() => { try { const v = localStorage.getItem('apex-news-cache'); return v ? {value: v} : null; } catch(e) { return null; } })();
-    if (!r) return;
-    const cache = JSON.parse(r.value);
-    const ageMin = (Date.now()-new Date(cache.fetchedAt))/60000;
-    if (cache.items?.length) {
-      allNewsItems = cache.items;
+    const cached = JSON.parse(localStorage.getItem(NEWS_CACHE_KEY) || 'null');
+    if (cached && (Date.now() - cached.ts) < NEWS_CACHE_TTL && cached.items?.length) {
+      allNewsItems = cached.items;
+      const statusTxt = document.getElementById('news-status-txt');
+      const dot       = document.getElementById('news-status-dot');
+      if (statusTxt) statusTxt.textContent = `${cached.items.length} stories`;
+      if (dot) dot.style.background = 'var(--gr)';
       updateNewsKPIs();
       renderNewsFeed();
       renderSentimentMap();
-      document.getElementById('news-status-dot').style.background = ageMin<60?'var(--green)':'var(--yellow)';
-      document.getElementById('news-status-dot').style.boxShadow  = ageMin<60?'0 0 6px var(--green)':'0 0 6px var(--yellow)';
-      document.getElementById('news-status-txt').textContent = `${allNewsItems.length} stories · ${Math.round(ageMin)}min ago`;
-      document.getElementById('nkpi-time').textContent = new Date(cache.fetchedAt).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
-      document.getElementById('newsEmpty').style.display = 'none';
-      document.getElementById('newsFetchBtn').textContent = '◎ Refresh News';
+      return true;
     }
   } catch(e) {}
+  return false;
 }
 
-
-
-// ═══════════════════════════════════════════════
 // SPRINT 4 — AI BRIEFING + CHARTS
 // ═══════════════════════════════════════════════
 
