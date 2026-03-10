@@ -1113,172 +1113,74 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
   </div><!-- /dashboard -->
 
   <!-- PORTFOLIO PAGE (Sprint 2) -->
-  <div class="main" id="page-portfolio">
+  <div class="main  <div id="page-portfolio" class="main">
     <div class="page-header">
       <div>
-        <div class="page-title">Portfolio Tracker</div>
-        <div class="page-subtitle">P&L · Drift Analysis · Rebalancing Calculator · Position Editor</div>
+        <div class="page-title">Portfolio Builder</div>
+        <div class="page-subtitle" id="pt-subtitle">Add your holdings below · live prices update automatically</div>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="refresh-btn" onclick="showRebalModal()">⚖ Rebalance</button>
-        <button class="refresh-btn" onclick="showAddModal()">＋ Add Position</button>
-        <button class="refresh-btn" onclick="exportCSV()">↓ Export</button>
-      </div>
-    </div>
-
-    <!-- P&L KPI row -->
-    <div class="kpi-row" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
-      <div class="kpi-card green">
-        <div class="kpi-label">Total Value</div>
-        <div class="kpi-value" style="color:var(--green)" id="pt-total">$37,454</div>
-        <div class="kpi-sub">CAD</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-label">Total P&L</div>
-        <div class="kpi-value pos" id="pt-pnl">+$3,727</div>
-        <div class="kpi-sub" id="pt-pnlpct">+11.05%</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-label">Winners</div>
-        <div class="kpi-value" style="color:var(--green)" id="pt-winners">9</div>
-        <div class="kpi-sub">positions up</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-label">Losers</div>
-        <div class="kpi-value" style="color:var(--red)" id="pt-losers">5</div>
-        <div class="kpi-sub">positions down</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-label">Biggest Loss</div>
-        <div class="kpi-value" style="color:var(--red)" id="pt-worst">LULU</div>
-        <div class="kpi-sub" id="pt-worst-pct">-47.7%</div>
-      </div>
-      <div class="kpi-card yellow">
-        <div class="kpi-label">Drift Alerts</div>
-        <div class="kpi-value" style="color:var(--yellow)" id="pt-alerts">5</div>
-        <div class="kpi-sub">need attention</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="refresh-btn" onclick="ptRefreshAllPrices()" title="Refresh all live prices">↺ Refresh Prices</button>
+        <button class="refresh-btn" onclick="ptExportCSV()" title="Export to CSV">↓ Export</button>
       </div>
     </div>
 
-    <!-- Drift Analysis -->
-    <div class="two-col" style="margin-bottom:20px">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Drift Analysis</div>
-          <div class="card-meta">Current vs Target Allocation</div>
-        </div>
-        <div style="padding:6px 0" id="driftRows"></div>
+    <!-- Summary KPI bar -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px" id="pt-kpi-bar">
+      <div class="card" style="padding:12px 16px">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Value</div>
+        <div style="font-size:20px;font-weight:700;color:var(--txt)" id="pt-total">—</div>
       </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Rebalancing Summary</div>
-          <div class="card-meta">Based on $37,454 portfolio</div>
-        </div>
-        <div style="padding:12px 18px" id="rebalSummary"></div>
+      <div class="card" style="padding:12px 16px">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Cost</div>
+        <div style="font-size:20px;font-weight:700;color:var(--txt)" id="pt-cost">—</div>
+      </div>
+      <div class="card" style="padding:12px 16px">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total P&L</div>
+        <div style="font-size:20px;font-weight:700" id="pt-pnl">—</div>
+        <div style="font-size:11px;color:var(--dim)" id="pt-pnlpct"></div>
+      </div>
+      <div class="card" style="padding:12px 16px">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Positions</div>
+        <div style="font-size:20px;font-weight:700;color:var(--acc)" id="pt-count">0</div>
+      </div>
+      <div class="card" style="padding:12px 16px">
+        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Day Change</div>
+        <div style="font-size:20px;font-weight:700" id="pt-daychange">—</div>
       </div>
     </div>
 
-    <!-- Full editable holdings table -->
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header">
-        <div class="card-title">Positions · Edit Mode</div>
-        <div class="card-meta">Click any row to edit · Changes saved automatically</div>
+    <!-- Spreadsheet table -->
+    <div class="card" style="padding:0;overflow:visible">
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;min-width:900px" id="ptTable">
+          <thead>
+            <tr style="background:var(--bg3);border-bottom:1px solid var(--bd)">
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:200px">Stock / ETF</th>
+              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:80px">Ticker</th>
+              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:90px">Shares</th>
+              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">Avg Cost</th>
+              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">Live Price</th>
+              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:100px">Day %</th>
+              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">Mkt Value</th>
+              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">P&L</th>
+              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:70px">P&L %</th>
+              <th style="padding:10px 8px;text-align:center;width:40px"></th>
+            </tr>
+          </thead>
+          <tbody id="ptRows">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Holding</th>
-            <th>Shares</th>
-            <th>Avg Cost</th>
-            <th>Live Price</th>
-            <th>Book Value</th>
-            <th>Mkt Value</th>
-            <th>Unreal. P&L</th>
-            <th>Return</th>
-            <th>Portfolio %</th>
-            <th>Target %</th>
-            <th>Drift</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="ptBody"></tbody>
-      </table>
     </div>
-
-    <!-- P&L Waterfall -->
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-header">
-        <div class="card-title">P&L Waterfall</div>
-        <div class="card-meta">Contribution by position</div>
-      </div>
-      <div style="padding:16px 20px" id="waterfallChart"></div>
-    </div>
-
-    <!-- Snapshot history -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Portfolio Snapshots</div>
-        <div class="card-meta">Saved history · <button onclick="saveSnapshot()" style="background:none;border:none;color:var(--green);cursor:pointer;font-family:var(--font-mono);font-size:10px">+ Save today's snapshot</button></div>
-      </div>
-      <div id="snapshotList" style="padding:8px 0">
-        <div style="padding:12px 18px;color:var(--dim);font-size:11px">No snapshots yet — click "Save today's snapshot" to track your portfolio over time.</div>
-      </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="refresh-btn" onclick="ptAddRow()" style="background:var(--acc);color:#000;font-weight:600">+ Add Stock</button>
+      <span style="font-size:11px;color:var(--dim);line-height:32px">Type a company name or ticker in the search field to add a holding</span>
     </div>
   </div>
 
-  <!-- ADD POSITION MODAL -->
-  <div id="addModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
-    <div style="background:var(--s2);border:1px solid var(--border2);border-radius:12px;padding:28px;width:400px;font-family:var(--font-mono)">
-      <div style="font-family:var(--font-ui);font-size:1rem;font-weight:600;margin-bottom:20px;color:var(--text)">Add Position</div>
-      <div style="display:grid;gap:12px">
-        <div>
-          <label style="font-size:10px;color:var(--dim);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Ticker Symbol</label>
-          <input id="add-sym" placeholder="e.g. AAPL" style="width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none">
-        </div>
-        <div>
-          <label style="font-size:10px;color:var(--dim);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Company Name</label>
-          <input id="add-name" placeholder="e.g. Apple Inc." style="width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div>
-            <label style="font-size:10px;color:var(--dim);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Shares</label>
-            <input id="add-shares" type="number" placeholder="10" style="width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none">
-          </div>
-          <div>
-            <label style="font-size:10px;color:var(--dim);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Avg Cost/Share</label>
-            <input id="add-cost" type="number" placeholder="150.00" style="width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none">
-          </div>
-        </div>
-        <div>
-          <label style="font-size:10px;color:var(--dim);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.1em">Type</label>
-          <select id="add-type" style="width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none">
-            <option value="stock">Stock</option><option value="etf">ETF</option>
-            <option value="crypto">Crypto</option><option value="spec">Speculative</option><option value="cash">Cash</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
-        <button onclick="closeAddModal()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:8px 16px;color:var(--mid);font-family:var(--font-mono);font-size:11px;cursor:pointer">Cancel</button>
-        <button onclick="addPosition()" style="background:rgba(0,229,160,0.12);border:1px solid rgba(0,229,160,0.3);border-radius:6px;padding:8px 16px;color:var(--green);font-family:var(--font-mono);font-size:11px;cursor:pointer">Add Position</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- REBALANCE MODAL -->
-  <div id="rebalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;overflow-y:auto">
-    <div style="background:var(--s2);border:1px solid var(--border2);border-radius:12px;padding:28px;width:560px;font-family:var(--font-mono);margin:40px auto">
-      <div style="font-family:var(--font-ui);font-size:1rem;font-weight:600;margin-bottom:6px;color:var(--text)">⚖ Rebalancing Calculator</div>
-      <div style="font-size:10px;color:var(--dim);margin-bottom:20px">Based on your current portfolio value and target allocations</div>
-      <div id="rebalDetail"></div>
-      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
-        <button onclick="closeRebalModal()" style="background:var(--s3);border:1px solid var(--border);border-radius:6px;padding:8px 16px;color:var(--mid);font-family:var(--font-mono);font-size:11px;cursor:pointer">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- NEWS PAGE (Sprint 3) -->
-  <div class="main" id="page-news">
+id="page-news">
     <div class="page-header">
       <div>
         <div class="page-title">News Feed</div>
@@ -1644,22 +1546,13 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
 
 <script>
 // ── Portfolio data ──
-const HOLDINGS = [
-  { sym:'NVDA',   name:'NVIDIA Corporation',          tag:'stock',  shares:null, costTotal:2705.64,  costShare:null, weight:10.5, knownValue:3943.52  },
-  { sym:'TD',     name:'Toronto-Dominion Bank',        tag:'stock',  shares:null, costTotal:3445.74,  costShare:null, weight:15.5, knownValue:5823.19  },
-  { sym:'BRK-B',  name:'Berkshire Hathaway B',         tag:'stock',  shares:null, costTotal:3269.95,  costShare:null, weight:8.3,  knownValue:3098.25  },
-  { sym:'XSP.TO', name:'iShares S&P 500 (CAD-Hdg)',    tag:'etf',    shares:null, costTotal:4041.38,  costShare:null, weight:11.9, knownValue:4447.30  },
-  { sym:'BTCX-B.TO',name:'CI Galaxy Bitcoin ETF',      tag:'crypto', shares:null, costTotal:5345.64,  costShare:null, weight:11.3, knownValue:4226.13  },
-  { sym:'CVS',    name:'CVS Health Corporation',       tag:'stock',  shares:null, costTotal:2249.15,  costShare:null, weight:7.6,  knownValue:2834.71  },
-  { sym:'KILO.NE',name:'Purpose Gold Bullion ETF',     tag:'etf',    shares:null, costTotal:2019.91,  costShare:null, weight:7.3,  knownValue:2730.23  },
-  { sym:'UNH',    name:'UnitedHealth Group',           tag:'stock',  shares:null, costTotal:1956.99,  costShare:null, weight:5.2,  knownValue:1964.41  },
-  { sym:'ZEM.TO', name:'BMO MSCI Emerging Markets',    tag:'etf',    shares:null, costTotal:2139.20,  costShare:null, weight:6.0,  knownValue:2250.40  },
-  { sym:'LULU',   name:'Lululemon Athletica',          tag:'stock',  shares:null, costTotal:1933.20,  costShare:null, weight:2.7,  knownValue:1011.15  },
-  { sym:'IONQ',   name:'IonQ Inc.',                    tag:'spec',   shares:null, costTotal:1546.11,  costShare:null, weight:2.7,  knownValue:1017.82  },
-  { sym:'ZCH.TO', name:'BMO MSCI China ETF',           tag:'etf',    shares:null, costTotal:1372.00,  costShare:null, weight:4.0,  knownValue:1484.80  },
-  { sym:'MTY.TO', name:'MTY Food Group',               tag:'stock',  shares:null, costTotal:648.45,   costShare:null, weight:2.3,  knownValue:876.82   },
-  { sym:'HELP.NE',name:'Cybin Inc.',                   tag:'spec',   shares:null, costTotal:450.00,   costShare:null, weight:1.0,  knownValue:356.00   },
-];
+// HOLDINGS generated dynamically from portfolio rows
+function getHoldings() {
+  const rows = (typeof ptLoadRows==='function') ? ptLoadRows() : [];
+  return rows.filter(r=>r.ticker).map(r=>({sym:r.ticker,name:r.name||r.ticker,shares:r.shares||0,costShare:r.avgCost||0}));
+}
+let HOLDINGS = [];
+function refreshHoldings() { HOLDINGS = getHoldings(); return HOLDINGS; }
 
 const TOTAL_COST = 33728.02;
 
@@ -1676,7 +1569,12 @@ const MARKETS = [
 ];
 
 // All tickers for tape
-const TAPE_SYMS = ['NVDA','TD','BRK-B','CVS','UNH','LULU','IONQ','XSP.TO','BTCX-B.TO','KILO.NE','ZEM.TO','ZCH.TO','MTY.TO','HELP.NE'];
+// TAPE_SYMS generated dynamically from portfolio
+function getTapeSyms() {
+  const h = getHoldings();
+  return [...new Set([...h.map(x=>x.sym),'^GSPC','^GSPTSE','BTC-USD','GC=F','EURUSD=X','^VIX','CL=F'])];
+}
+const TAPE_SYMS = [];
 
 // ── Navigation ──
 function showPage(id) {
@@ -1777,6 +1675,8 @@ async function fetchPrice(symbol) {
 let priceCache = {};
 
 async function fetchAllPrices() {
+  refreshHoldings(); // sync from portfolio
+
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
   btn.querySelector('.icon').textContent = '↻';
@@ -1898,458 +1798,445 @@ function buildInitialTape() {
 
 
 // ═══════════════════════════════════════════════
-// SPRINT 2 — PORTFOLIO TRACKER
-// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// PORTFOLIO BUILDER  ─  spreadsheet-style with live search
+// ═══════════════════════════════════════════════════════════════
 
-// Target allocations (%) — aggressive growth profile
-const TARGETS = {
-  'NVDA':      10,
-  'TD':         8,
-  'BRK-B':      6,
-  'XSP.TO':    15,
-  'BTCX-B.TO':  8,
-  'CVS':         5,
-  'KILO.NE':    4,
-  'UNH':         5,
-  'ZEM.TO':     8,
-  'LULU':        3,
-  'IONQ':        2,
-  'ZCH.TO':     5,
-  'MTY.TO':     2,
-  'HELP.NE':    1,
-  'CASH':       18,
-};
+const PT_KEY      = 'apex-positions-v2';   // localStorage key
+const PT_PRICE_KEY= 'apex-pt-prices';      // live price cache
 
-// Load positions from storage or use defaults
+// ── Data model ──────────────────────────────────────────────────
+// Each row: { id, ticker, name, shares, avgCost, currency }
+// Live data: fetched and cached separately
+
+let ptRows = [];          // array of row objects
+let ptPrices = {};        // { ticker: { price, changePct, prev } }
+let ptSearchTimer = {};   // debounce timers per row
+let ptDropdownOpen = null;// currently open dropdown row id
+
+// ── Load / Save ─────────────────────────────────────────────────
 async function loadPositions() {
   try {
-    const r = (() => { try { const v = localStorage.getItem('apex-positions'); return v ? {value: v} : null; } catch(e) { return null; } })();
-    if (r) return JSON.parse(r.value);
+    const raw = localStorage.getItem(PT_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data) && data.length) {
+        // Convert array format → object format for compatibility with rest of app
+        const obj = {};
+        data.forEach(r => {
+          if (r.ticker) obj[r.ticker] = { shares: r.shares || 0, avgCost: r.avgCost || 0 };
+        });
+        return obj;
+      }
+    }
   } catch(e) {}
-  // defaults from known data
-  return {
-    'NVDA':       { shares: 13,   avgCost: 208.12 },
-    'TD':         { shares: 75,   avgCost: 45.94  },
-    'BRK-B':      { shares: 8,    avgCost: 408.74 },
-    'XSP.TO':     { shares: 120,  avgCost: 33.68  },
-    'BTCX-B.TO':  { shares: 200,  avgCost: 26.73  },
-    'CVS':        { shares: 40,   avgCost: 56.23  },
-    'KILO.NE':    { shares: 95,   avgCost: 21.26  },
-    'UNH':        { shares: 3,    avgCost: 652.33 },
-    'ZEM.TO':     { shares: 85,   avgCost: 25.17  },
-    'LULU':       { shares: 8,    avgCost: 241.65 },
-    'IONQ':       { shares: 60,   avgCost: 25.77  },
-    'ZCH.TO':     { shares: 110,  avgCost: 12.47  },
-    'MTY.TO':     { shares: 12,   avgCost: 54.04  },
-    'HELP.NE':    { shares: 500,  avgCost: 0.90   },
-    'CASH':       { shares: 1,    avgCost: 996.81 },
-  };
+  return {};
 }
 
-async function savePositions(pos) {
-  try { try { localStorage.setItem('apex-positions', JSON.stringify(pos)); } catch(e) {} } catch(e) {}
+function ptLoadRows() {
+  try {
+    const raw = localStorage.getItem(PT_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data)) return data;
+    }
+  } catch(e) {}
+  return [];
 }
 
-let positions = {};
-
-async function initPortfolioTracker() {
-  positions = await loadPositions();
-  renderPortfolioTracker();
-  renderDriftAnalysis();
-  renderWaterfall();
-  loadSnapshots();
+function ptSave() {
+  try {
+    localStorage.setItem(PT_KEY, JSON.stringify(ptRows));
+  } catch(e) {}
+  ptUpdateKPIs();
 }
 
-function getDisplaySym(sym) {
-  return sym.replace('.TO','').replace('.NE','').replace('-B','').replace(/-/g,'');
+function savePositions(obj) {
+  // Compatibility shim: convert object format → array format
+  try {
+    const arr = Object.entries(obj)
+      .filter(([t]) => t !== 'CASH')
+      .map(([ticker, d]) => ({ id: ticker + '_' + Date.now(), ticker, name: ticker, shares: d.shares || 0, avgCost: d.avgCost || 0, currency: 'USD' }));
+    localStorage.setItem(PT_KEY, JSON.stringify(arr));
+    ptRows = arr;
+    ptRenderTable();
+    ptRefreshAllPrices();
+  } catch(e) {}
 }
 
-function getLivePrice(sym) {
-  const p = priceCache[sym];
-  return p ? p.price : null;
+// ── Live price helpers ───────────────────────────────────────────
+function getLivePrice(ticker) {
+  return ptPrices[ticker]?.price || null;
+}
+function getDisplaySym(ticker) { return ticker; }
+
+async function ptFetchPrice(ticker) {
+  try {
+    const url = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker) + '?interval=1d&range=1d')}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const j = await r.json();
+    const meta = j?.chart?.result?.[0]?.meta || {};
+    const price = meta.regularMarketPrice || null;
+    const prev  = meta.chartPreviousClose || meta.previousClose || price;
+    const changePct = (price && prev) ? ((price - prev) / prev * 100) : null;
+    const currency  = meta.currency || 'USD';
+    if (price) {
+      ptPrices[ticker] = { price, changePct, currency };
+      try { localStorage.setItem(PT_PRICE_KEY, JSON.stringify(ptPrices)); } catch(e) {}
+    }
+    return { price, changePct, currency };
+  } catch(e) { return { price: null, changePct: null, currency: 'USD' }; }
 }
 
-function getMarketValue(sym, pos) {
-  const price = getLivePrice(sym);
-  const p = pos[sym];
-  if (!p) return 0;
-  if (price) return price * p.shares;
-  // fallback to known value
-  const h = HOLDINGS.find(h => h.sym === sym);
-  return h ? h.knownValue : p.shares * p.avgCost;
+async function ptRefreshAllPrices() {
+  const tickers = [...new Set(ptRows.filter(r=>r.ticker).map(r=>r.ticker))];
+  if (!tickers.length) return;
+  await Promise.all(tickers.map(t => ptFetchPrice(t)));
+  ptRenderTable();
+  ptUpdateKPIs();
 }
 
-function getTotalMarketValue(pos) {
-  return HOLDINGS.reduce((sum, h) => sum + getMarketValue(h.sym, pos), 0)
-    + getMarketValue('CASH', pos);
+// ── Search / Autocomplete ────────────────────────────────────────
+async function ptSearchTicker(query, rowId) {
+  if (query.length < 1) { ptCloseDropdown(); return; }
+  try {
+    const url = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v1/finance/search?q=' + encodeURIComponent(query) + '&quotesCount=8&newsCount=0&enableFuzzyQuery=true')}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const j = await r.json();
+    const quotes = (j?.quotes || []).filter(q => q.symbol && q.quoteType && ['EQUITY','ETF','CRYPTOCURRENCY','MUTUALFUND'].includes(q.quoteType));
+    ptShowDropdown(rowId, quotes.slice(0,7));
+  } catch(e) { ptCloseDropdown(); }
 }
 
-function renderPortfolioTracker() {
-  const total = getTotalMarketValue(positions);
-  const totalCost = HOLDINGS.reduce((s,h)=> s + h.costTotal, 0);
-  const pnl = total - totalCost;
-  const pnlPct = pnl / totalCost * 100;
-
-  let winners = 0, losers = 0, worst = null, worstPct = 0;
-  HOLDINGS.forEach(h => {
-    const mv = getMarketValue(h.sym, positions);
-    const ret = (mv - h.costTotal) / h.costTotal * 100;
-    if (ret >= 0) winners++; else losers++;
-    if (ret < worstPct) { worstPct = ret; worst = h.sym; }
-  });
-
-  document.getElementById('pt-total').textContent = '$' + total.toLocaleString('en-CA', {maximumFractionDigits:0});
-  document.getElementById('pt-pnl').textContent = (pnl>=0?'+$':'−$') + Math.abs(pnl).toLocaleString('en-CA',{maximumFractionDigits:0});
-  document.getElementById('pt-pnl').className = 'kpi-value ' + (pnl>=0?'pos':'neg');
-  document.getElementById('pt-pnlpct').textContent = (pnlPct>=0?'+':'') + pnlPct.toFixed(2) + '%';
-  document.getElementById('pt-winners').textContent = winners;
-  document.getElementById('pt-losers').textContent = losers;
-  if (worst) {
-    document.getElementById('pt-worst').textContent = getDisplaySym(worst);
-    document.getElementById('pt-worst-pct').textContent = worstPct.toFixed(1) + '%';
-  }
-
-  // Count drift alerts
-  let alerts = 0;
-  HOLDINGS.forEach(h => {
-    const mv = getMarketValue(h.sym, positions);
-    const cur = mv / total * 100;
-    const tgt = TARGETS[h.sym] || 0;
-    if (Math.abs(cur - tgt) >= 5) alerts++;
-  });
-  document.getElementById('pt-alerts').textContent = alerts;
-
-  // Table
-  const tbody = document.getElementById('ptBody');
-  const tagLabels = { stock:'Stock', etf:'ETF', crypto:'Crypto', spec:'Speculative', cash:'Cash' };
-  tbody.innerHTML = [...HOLDINGS, {sym:'CASH', name:'Cash (HISA + Chèque)', tag:'cash', costTotal:996.81, knownValue:996.81}].map(h => {
-    const pos = positions[h.sym] || { shares: 0, avgCost: 0 };
-    const price = getLivePrice(h.sym);
-    const mv = price ? price * pos.shares : h.knownValue;
-    const bookVal = pos.shares * pos.avgCost;
-    const pnl = mv - bookVal;
-    const ret = bookVal > 0 ? (pnl / bookVal * 100) : 0;
-    const weight = total > 0 ? (mv / total * 100) : 0;
-    const tgt = TARGETS[h.sym] || 0;
-    const drift = weight - tgt;
-    const driftClass = Math.abs(drift) >= 5 ? 'drift-danger' : Math.abs(drift) >= 2 ? 'drift-warn' : 'drift-ok';
-    const driftLabel = Math.abs(drift) < 1 ? '✓' : (drift > 0 ? `+${drift.toFixed(1)}%` : `${drift.toFixed(1)}%`);
-    const symKey = h.sym.replace(/[^a-zA-Z0-9]/g,'_');
-
-    return `<tr id="ptrow-${symKey}">
-      <td>
-        <div class="sym">${getDisplaySym(h.sym)}</div>
-        <div class="name">${h.name}</div>
-        <span class="tag tag-${h.tag}">${tagLabels[h.tag]||h.tag}</span>
-      </td>
-      <td><input class="pt-input" value="${pos.shares}" onchange="updatePosition('${h.sym}','shares',this.value)" style="width:60px"></td>
-      <td><input class="pt-input" value="${pos.avgCost.toFixed(2)}" onchange="updatePosition('${h.sym}','avgCost',this.value)" style="width:72px"></td>
-      <td id="ptprice-${symKey}" class="${price?(ret>=0?'pos':'neg'):'neu'}">${price ? '$'+price.toFixed(2) : '<span class="price-loading" style="width:40px;display:inline-block"></span>'}</td>
-      <td>$${bookVal.toLocaleString('en-CA',{maximumFractionDigits:0})}</td>
-      <td id="ptmv-${symKey}">$${mv.toLocaleString('en-CA',{maximumFractionDigits:0})}</td>
-      <td id="ptpnl-${symKey}" class="${pnl>=0?'pos':'neg'}">${pnl>=0?'+':'-'}$${Math.abs(pnl).toLocaleString('en-CA',{maximumFractionDigits:0})}</td>
-      <td id="ptret-${symKey}" class="${ret>=0?'pos':'neg'}">${ret>=0?'+':''}${ret.toFixed(1)}%</td>
-      <td id="ptwt-${symKey}">${weight.toFixed(1)}%</td>
-      <td>${tgt}%</td>
-      <td><span class="drift-chip ${driftClass}" id="ptdrift-${symKey}">${driftLabel}</span></td>
-      <td><span onclick="deletePosition('${h.sym}')" style="color:var(--dim);cursor:pointer;font-size:13px" title="Remove">✕</span></td>
-    </tr>`;
-  }).join('');
-}
-
-async function updatePosition(sym, field, val) {
-  if (!positions[sym]) positions[sym] = { shares: 0, avgCost: 0 };
-  positions[sym][field] = parseFloat(val) || 0;
-  await savePositions(positions);
-  renderPortfolioTracker();
-  renderDriftAnalysis();
-  renderWaterfall();
-}
-
-async function deletePosition(sym) {
-  if (!confirm(`Remove ${getDisplaySym(sym)} from your portfolio?`)) return;
-  delete positions[sym];
-  await savePositions(positions);
-  renderPortfolioTracker();
-  renderDriftAnalysis();
-  renderWaterfall();
-}
-
-function renderDriftAnalysis() {
-  const total = getTotalMarketValue(positions);
-  const container = document.getElementById('driftRows');
-  const rebalSummary = document.getElementById('rebalSummary');
-
-  const rows = [...HOLDINGS, {sym:'CASH', name:'Cash', tag:'cash'}].map(h => {
-    const mv = getMarketValue(h.sym, positions);
-    const cur = total > 0 ? (mv / total * 100) : 0;
-    const tgt = TARGETS[h.sym] || 0;
-    const drift = cur - tgt;
-    const absDrift = Math.abs(drift);
-    const driftClass = absDrift >= 5 ? 'drift-danger' : absDrift >= 2 ? 'drift-warn' : 'drift-ok';
-    const barWidth = Math.min((cur / 30) * 100, 100);
-    const barColor = absDrift >= 5 ? 'var(--red)' : absDrift >= 2 ? 'var(--yellow)' : 'var(--green)';
-
-    return { sym: h.sym, cur, tgt, drift, absDrift, driftClass, barWidth, barColor, mv, name: h.name };
-  });
-
-  rows.sort((a,b) => b.absDrift - a.absDrift);
-
-  container.innerHTML = rows.map(r => `
-    <div class="alloc-row">
-      <div style="width:55px;font-size:11px;color:var(--text);flex-shrink:0">${getDisplaySym(r.sym)}</div>
-      <div class="drift-bar-wrap" style="flex:1">
-        <div class="drift-bar-bg2">
-          <div class="drift-bar-fill2" style="width:${r.barWidth}%;background:${r.barColor}"></div>
-        </div>
-        <span style="font-size:10px;color:var(--mid);width:32px;text-align:right">${r.cur.toFixed(1)}%</span>
+function ptShowDropdown(rowId, quotes) {
+  ptCloseDropdown();
+  const inputEl = document.getElementById('pt-search-' + rowId);
+  if (!inputEl || !quotes.length) return;
+  const dd = document.createElement('div');
+  dd.id = 'pt-dd-' + rowId;
+  dd.style.cssText = 'position:absolute;z-index:9999;background:var(--bg2);border:1px solid var(--acc);border-radius:8px;min-width:320px;max-height:280px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)';
+  dd.innerHTML = quotes.map(q => {
+    const name = (q.longname || q.shortname || q.symbol).replace(/</g,'&lt;');
+    const sym  = q.symbol;
+    const type = q.quoteType || '';
+    const exch = q.exchDisp || q.exchange || '';
+    return `<div class="pt-dd-item" onclick="ptSelectTicker('${rowId}','${sym.replace(/'/g,'\\'')}','${name.replace(/'/g,'\\'').replace(/"/g,'')}','${q.currency||'USD'}')"
+      style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px"
+      onmouseover="this.style.background='var(--acc)20'"
+      onmouseout="this.style.background=''">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px;color:var(--acc)">${sym}</div>
+        <div style="font-size:11px;color:var(--dim)">${name}</div>
       </div>
-      <span style="font-size:10px;color:var(--dim);width:28px;text-align:center">→</span>
-      <span style="font-size:10px;color:var(--dim);width:28px">${r.tgt}%</span>
-      <span class="drift-chip ${r.driftClass}" style="width:52px;text-align:center">
-        ${r.drift >= 0 ? '+' : ''}${r.drift.toFixed(1)}%
-      </span>
-    </div>`).join('');
-
-  // Rebalancing summary
-  const sells = rows.filter(r => r.drift >= 2).sort((a,b) => b.drift - a.drift);
-  const buys  = rows.filter(r => r.drift <= -2).sort((a,b) => a.drift - b.drift);
-
-  let html = '';
-  if (sells.length) {
-    html += `<div style="font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--dim);margin-bottom:8px">Reduce (overweight)</div>`;
-    html += sells.map(r => {
-      const dollarDiff = ((r.drift / 100) * total);
-      return `<div class="rb-row">
-        <span class="rb-sym">${getDisplaySym(r.sym)}</span>
-        <span class="rb-cur">${r.cur.toFixed(1)}%</span>
-        <span style="color:var(--dim);font-size:10px">→</span>
-        <span class="rb-tgt">${r.tgt}%</span>
-        <span class="rb-diff drift-danger">${r.drift>0?'+':''}${r.drift.toFixed(1)}%</span>
-        <span class="rb-amt neg">Sell ~$${Math.abs(dollarDiff).toLocaleString('en-CA',{maximumFractionDigits:0})}</span>
-      </div>`;
-    }).join('');
-  }
-  if (buys.length) {
-    html += `<div style="font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--dim);margin:12px 0 8px">Add (underweight)</div>`;
-    html += buys.map(r => {
-      const dollarDiff = Math.abs((r.drift / 100) * total);
-      return `<div class="rb-row">
-        <span class="rb-sym">${getDisplaySym(r.sym)}</span>
-        <span class="rb-cur">${r.cur.toFixed(1)}%</span>
-        <span style="color:var(--dim);font-size:10px">→</span>
-        <span class="rb-tgt">${r.tgt}%</span>
-        <span class="rb-diff drift-danger">${r.drift.toFixed(1)}%</span>
-        <span class="rb-amt pos">Buy ~$${dollarDiff.toLocaleString('en-CA',{maximumFractionDigits:0})}</span>
-      </div>`;
-    }).join('');
-  }
-  if (!sells.length && !buys.length) {
-    html = '<div style="color:var(--green);font-size:12px;padding:12px 0">✓ Portfolio is well balanced!</div>';
-  }
-  rebalSummary.innerHTML = html;
-}
-
-function renderWaterfall() {
-  const container = document.getElementById('waterfallChart');
-  const items = HOLDINGS.map(h => {
-    const pos = positions[h.sym] || { shares: 0, avgCost: 0 };
-    const mv = getMarketValue(h.sym, positions);
-    const bookVal = pos.shares * pos.avgCost || h.costTotal;
-    const pnl = mv - bookVal;
-    return { sym: getDisplaySym(h.sym), pnl };
-  }).sort((a,b) => b.pnl - a.pnl);
-
-  const maxAbs = Math.max(...items.map(i => Math.abs(i.pnl)), 1);
-
-  container.innerHTML = items.map(item => {
-    const barWidth = Math.max((Math.abs(item.pnl) / maxAbs) * 100, 1);
-    const color = item.pnl >= 0 ? 'var(--green)' : 'var(--red)';
-    const label = (item.pnl >= 0 ? '+$' : '-$') + Math.abs(item.pnl).toLocaleString('en-CA',{maximumFractionDigits:0});
-    return `
-    <div class="wf-row">
-      <div class="wf-sym">${item.sym}</div>
-      <div class="wf-bar-wrap">
-        <div class="wf-bar" style="width:${barWidth}%;background:${color};opacity:0.8"></div>
+      <div style="text-align:right">
+        <div style="font-size:10px;color:var(--dim)">${type}</div>
+        <div style="font-size:10px;color:var(--dim)">${exch}</div>
       </div>
-      <div class="wf-val ${item.pnl>=0?'pos':'neg'}">${label}</div>
     </div>`;
   }).join('');
+  // Position relative to input
+  const rect = inputEl.getBoundingClientRect();
+  const mainEl = document.getElementById('page-portfolio');
+  const mainRect = mainEl ? mainEl.getBoundingClientRect() : {left:0,top:0};
+  dd.style.left = (rect.left - mainRect.left) + 'px';
+  dd.style.top  = (rect.bottom - mainRect.top + 4) + 'px';
+  dd.style.position = 'absolute';
+  if (mainEl) mainEl.appendChild(dd);
+  ptDropdownOpen = rowId;
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', ptHandleOutsideClick, { once: true });
+  }, 0);
 }
 
-// ── Snapshots ──
-async function loadSnapshots() {
-  try {
-    const r = (() => { try { const v = localStorage.getItem('apex-snapshots'); return v ? {value: v} : null; } catch(e) { return null; } })();
-    const snaps = r ? JSON.parse(r.value) : [];
-    renderSnapshots(snaps);
-  } catch(e) { renderSnapshots([]); }
+function ptHandleOutsideClick(e) {
+  if (!e.target.closest('#pt-dd-' + ptDropdownOpen) && !e.target.closest('#pt-search-' + ptDropdownOpen)) {
+    ptCloseDropdown();
+  }
 }
 
-async function saveSnapshot() {
-  const total = getTotalMarketValue(positions);
-  const totalCost = HOLDINGS.reduce((s,h)=> s + h.costTotal, 0);
-  const pnl = total - totalCost;
-  const snap = {
-    date: new Date().toLocaleString('en-CA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }),
-    total,
-    pnl,
-    pnlPct: (pnl / totalCost * 100),
-    positions: JSON.parse(JSON.stringify(positions))
-  };
-  try {
-    const r = (() => { try { const v = localStorage.getItem('apex-snapshots'); return v ? {value: v} : null; } catch(e) { return null; } })();
-    const snaps = r ? JSON.parse(r.value) : [];
-    snaps.unshift(snap);
-    const trimmed = snaps.slice(0, 30);
-    try { localStorage.setItem('apex-snapshots', JSON.stringify(trimmed)); } catch(e) {}
-    renderSnapshots(trimmed);
-  } catch(e) { alert('Could not save snapshot: ' + e.message); }
+function ptCloseDropdown() {
+  if (ptDropdownOpen) {
+    const dd = document.getElementById('pt-dd-' + ptDropdownOpen);
+    if (dd) dd.remove();
+    ptDropdownOpen = null;
+  }
 }
 
-async function deleteSnapshot(i) {
-  try {
-    const r = (() => { try { const v = localStorage.getItem('apex-snapshots'); return v ? {value: v} : null; } catch(e) { return null; } })();
-    const snaps = r ? JSON.parse(r.value) : [];
-    snaps.splice(i, 1);
-    try { localStorage.setItem('apex-snapshots', JSON.stringify(snaps)); } catch(e) {}
-    renderSnapshots(snaps);
-  } catch(e) {}
+async function ptSelectTicker(rowId, ticker, name, currency) {
+  ptCloseDropdown();
+  const row = ptRows.find(r => r.id === rowId);
+  if (!row) return;
+  row.ticker   = ticker;
+  row.name     = name;
+  row.currency = currency || 'USD';
+  ptSave();
+  // Update the display immediately
+  const searchEl = document.getElementById('pt-search-' + rowId);
+  if (searchEl) searchEl.value = name;
+  const tickerEl = document.getElementById('pt-ticker-' + rowId);
+  if (tickerEl) tickerEl.textContent = ticker;
+  // Fetch live price
+  const { price, changePct } = await ptFetchPrice(ticker);
+  ptRenderRow(rowId);
+  ptUpdateKPIs();
+  // Auto-add new empty row if this was the last one
+  const emptyRows = ptRows.filter(r => !r.ticker);
+  if (emptyRows.length === 0) ptAddRow();
 }
 
-function renderSnapshots(snaps) {
-  const container = document.getElementById('snapshotList');
-  if (!snaps.length) {
-    container.innerHTML = '<div style="padding:12px 18px;color:var(--dim);font-size:11px">No snapshots yet — click "Save today\'s snapshot" to track your portfolio over time.</div>';
+// ── Row add / remove ─────────────────────────────────────────────
+function ptAddRow() {
+  const id = 'row_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  ptRows.push({ id, ticker: '', name: '', shares: 0, avgCost: 0, currency: 'USD' });
+  ptRenderTable();
+  // Focus the search field in the new row
+  setTimeout(() => {
+    const el = document.getElementById('pt-search-' + id);
+    if (el) el.focus();
+  }, 50);
+}
+
+function ptRemoveRow(rowId) {
+  ptRows = ptRows.filter(r => r.id !== rowId);
+  ptSave();
+  ptRenderTable();
+  ptUpdateKPIs();
+}
+
+function ptUpdateField(rowId, field, value) {
+  const row = ptRows.find(r => r.id === rowId);
+  if (!row) return;
+  row[field] = field === 'shares' || field === 'avgCost' ? parseFloat(value) || 0 : value;
+  ptSave();
+  ptRenderRow(rowId);
+  ptUpdateKPIs();
+}
+
+// ── Rendering ────────────────────────────────────────────────────
+function ptRenderTable() {
+  const tbody = document.getElementById('ptRows');
+  if (!tbody) return;
+  // Ensure at least one empty row
+  if (ptRows.filter(r => !r.ticker).length === 0 && ptRows.length === 0) {
+    ptAddRow();
     return;
   }
-  container.innerHTML = snaps.map((s, i) => `
-    <div class="snap-row">
-      <div class="snap-date">${s.date}</div>
-      <div class="snap-val">$${s.total.toLocaleString('en-CA',{maximumFractionDigits:0})}</div>
-      <div class="snap-pnl ${s.pnl>=0?'pos':'neg'}">${s.pnl>=0?'+':'-'}$${Math.abs(s.pnl).toLocaleString('en-CA',{maximumFractionDigits:0})} (${s.pnlPct>=0?'+':''}${s.pnlPct.toFixed(2)}%)</div>
-      <span class="snap-del" onclick="deleteSnapshot(${i})" title="Delete">✕</span>
-    </div>`).join('');
+  tbody.innerHTML = ptRows.map(row => ptRowHTML(row)).join('');
 }
 
-// ── Add / Edit modals ──
-function showAddModal() {
-  const m = document.getElementById('addModal');
-  m.style.display = 'flex';
+function ptRowHTML(row) {
+  const { id, ticker, name, shares, avgCost, currency } = row;
+  const liveData  = ticker ? ptPrices[ticker] : null;
+  const price     = liveData?.price || null;
+  const changePct = liveData?.changePct;
+  const mktVal    = price && shares ? price * shares : null;
+  const cost      = avgCost && shares ? avgCost * shares : null;
+  const pnl       = (mktVal !== null && cost !== null) ? mktVal - cost : null;
+  const pnlPct    = (pnl !== null && cost) ? (pnl / cost * 100) : null;
+  const cur       = currency || 'USD';
+  const fmt       = (v, decimals=2) => v !== null && v !== undefined ? v.toLocaleString('en-CA', {minimumFractionDigits:decimals,maximumFractionDigits:decimals}) : '—';
+  const fmtCur    = (v) => v !== null && v !== undefined ? (cur==='CAD'?'CA$':'$') + fmt(v) : '—';
+  const pnlColor  = pnl === null ? 'var(--dim)' : pnl >= 0 ? 'var(--gr)' : 'var(--re)';
+  const chgColor  = !changePct ? 'var(--dim)' : changePct >= 0 ? 'var(--gr)' : 'var(--re)';
+  const chgStr    = changePct !== null && changePct !== undefined ? (changePct >= 0 ? '+' : '') + changePct.toFixed(2) + '%' : '—';
+  const pnlStr    = pnl !== null ? (pnl >= 0 ? '+' : '') + fmtCur(pnl) : '—';
+  const pnlPctStr = pnlPct !== null ? (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%' : '—';
+
+  const isBlank = !ticker;
+  const rowBg   = isBlank ? 'background:var(--bg3)20' : '';
+
+  return `<tr id="ptr-${id}" style="border-bottom:1px solid var(--bd);${rowBg}" class="pt-row">
+    <!-- Stock search -->
+    <td style="padding:6px 12px;position:relative">
+      <div style="position:relative">
+        <input id="pt-search-${id}" type="text"
+          class="pt-input" placeholder="Type company or ticker…"
+          value="${name || ''}"
+          style="width:100%;background:transparent;border:1px solid var(--bd);border-radius:5px;padding:6px 10px;color:var(--txt);font-size:12px;outline:none"
+          oninput="ptOnSearchInput('${id}', this.value)"
+          onfocus="if(this.value) ptOnSearchInput('${id}', this.value)"
+          autocomplete="off"
+          ${isBlank ? '' : ''}
+        />
+        ${ticker ? `<button onclick="ptClearRow('${id}')" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--dim);cursor:pointer;font-size:13px;line-height:1" title="Change stock">✕</button>` : ''}
+      </div>
+    </td>
+    <!-- Ticker pill -->
+    <td style="padding:6px 12px">
+      <span id="pt-ticker-${id}" style="font-family:monospace;font-size:12px;color:var(--acc);font-weight:600">${ticker || ''}</span>
+    </td>
+    <!-- Shares -->
+    <td style="padding:6px 12px;text-align:right">
+      <input type="number" min="0" step="any"
+        class="pt-input" placeholder="0"
+        value="${shares || ''}"
+        style="width:80px;text-align:right;background:transparent;border:1px solid var(--bd);border-radius:5px;padding:5px 8px;color:var(--txt);font-size:12px;outline:none"
+        onchange="ptUpdateField('${id}','shares',this.value)"
+        ${isBlank ? 'disabled' : ''}
+      />
+    </td>
+    <!-- Avg Cost -->
+    <td style="padding:6px 12px;text-align:right">
+      <input type="number" min="0" step="any"
+        class="pt-input" placeholder="0.00"
+        value="${avgCost || ''}"
+        style="width:90px;text-align:right;background:transparent;border:1px solid var(--bd);border-radius:5px;padding:5px 8px;color:var(--txt);font-size:12px;outline:none"
+        onchange="ptUpdateField('${id}','avgCost',this.value)"
+        ${isBlank ? 'disabled' : ''}
+      />
+    </td>
+    <!-- Live Price -->
+    <td style="padding:6px 12px;text-align:right">
+      <span style="font-size:12px;font-weight:600;color:var(--txt)">${price ? fmtCur(price) : (ticker ? '<span style="color:var(--dim);font-size:11px">loading…</span>' : '—')}</span>
+    </td>
+    <!-- Day % -->
+    <td style="padding:6px 12px;text-align:right">
+      <span style="font-size:12px;font-weight:600;color:${chgColor}">${chgStr}</span>
+    </td>
+    <!-- Market Value -->
+    <td style="padding:6px 12px;text-align:right">
+      <span style="font-size:12px;color:var(--txt)">${fmtCur(mktVal)}</span>
+    </td>
+    <!-- P&L -->
+    <td style="padding:6px 12px;text-align:right">
+      <span style="font-size:12px;font-weight:600;color:${pnlColor}">${pnlStr}</span>
+    </td>
+    <!-- P&L % -->
+    <td style="padding:6px 12px;text-align:right">
+      <span style="font-size:12px;color:${pnlColor}">${pnlPctStr}</span>
+    </td>
+    <!-- Remove -->
+    <td style="padding:6px 8px;text-align:center">
+      ${!isBlank ? `<button onclick="ptRemoveRow('${id}')" style="background:none;border:none;color:var(--re);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;line-height:1" title="Remove">✕</button>` : ''}
+    </td>
+  </tr>`;
 }
-function closeAddModal() {
-  document.getElementById('addModal').style.display = 'none';
+
+function ptRenderRow(rowId) {
+  const row = ptRows.find(r => r.id === rowId);
+  if (!row) return;
+  const tr = document.getElementById('ptr-' + rowId);
+  if (!tr) return;
+  tr.outerHTML = ptRowHTML(row);
 }
 
-async function addPosition() {
-  const sym   = document.getElementById('add-sym').value.trim().toUpperCase();
-  const name  = document.getElementById('add-name').value.trim();
-  const shares= parseFloat(document.getElementById('add-shares').value) || 0;
-  const cost  = parseFloat(document.getElementById('add-cost').value) || 0;
-  const type  = document.getElementById('add-type').value;
-  if (!sym) { alert('Please enter a ticker symbol.'); return; }
-
-  // Add to HOLDINGS if not present
-  if (!HOLDINGS.find(h => h.sym === sym)) {
-    HOLDINGS.push({ sym, name: name||sym, tag: type, shares: null, costTotal: shares*cost, costShare: null, weight: 0, knownValue: shares*cost });
-    TARGETS[sym] = 0;
-  }
-
-  positions[sym] = { shares, avgCost: cost };
-  await savePositions(positions);
-  closeAddModal();
-  renderPortfolioTracker();
-  renderDriftAnalysis();
-  renderWaterfall();
+function ptClearRow(rowId) {
+  const row = ptRows.find(r => r.id === rowId);
+  if (!row) return;
+  row.ticker = ''; row.name = ''; row.currency = 'USD';
+  ptSave();
+  ptRenderTable();
+  setTimeout(() => {
+    const el = document.getElementById('pt-search-' + rowId);
+    if (el) { el.value = ''; el.focus(); }
+  }, 30);
 }
 
-// ── Rebalance modal ──
-function showRebalModal() {
-  document.getElementById('rebalModal').style.display = 'flex';
-  const total = getTotalMarketValue(positions);
-  const container = document.getElementById('rebalDetail');
-
-  let html = `
-    <div style="display:flex;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:10px;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--dim)">
-      <span style="width:55px">Symbol</span>
-      <span style="width:50px;text-align:right">Current</span>
-      <span style="width:50px;text-align:right">Target</span>
-      <span style="width:60px;text-align:right">Drift</span>
-      <span style="flex:1;text-align:right">Action</span>
-      <span style="width:90px;text-align:right">Est. Amount</span>
-    </div>`;
-
-  const rows = [...HOLDINGS, {sym:'CASH',name:'Cash',tag:'cash'}].map(h => {
-    const mv = getMarketValue(h.sym, positions);
-    const cur = total > 0 ? (mv / total * 100) : 0;
-    const tgt = TARGETS[h.sym] || 0;
-    const drift = cur - tgt;
-    return { sym: h.sym, cur, tgt, drift, mv };
-  }).filter(r => Math.abs(r.drift) >= 1).sort((a,b) => b.drift - a.drift);
-
-  html += rows.map(r => {
-    const dollarAmt = Math.abs((r.drift / 100) * total);
-    const action = r.drift > 0 ? 'SELL' : 'BUY';
-    const actionClass = r.drift > 0 ? 'neg' : 'pos';
-    return `<div class="rb-row">
-      <span class="rb-sym">${getDisplaySym(r.sym)}</span>
-      <span class="rb-cur">${r.cur.toFixed(1)}%</span>
-      <span class="rb-tgt">${r.tgt}%</span>
-      <span class="rb-diff ${r.drift>=0?'neg':'pos'}">${r.drift>=0?'+':''}${r.drift.toFixed(1)}%</span>
-      <span class="rb-action"><span class="drift-chip ${r.drift>=0?'drift-danger':'drift-ok'}">${action}</span></span>
-      <span class="rb-amt ${actionClass}">$${dollarAmt.toLocaleString('en-CA',{maximumFractionDigits:0})}</span>
-    </div>`;
-  }).join('');
-
-  const totalSell = rows.filter(r=>r.drift>0).reduce((s,r)=>s+Math.abs((r.drift/100)*total),0);
-  const totalBuy  = rows.filter(r=>r.drift<0).reduce((s,r)=>s+Math.abs((r.drift/100)*total),0);
-  html += `<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:11px">
-    <span style="color:var(--red)">Total to sell: $${totalSell.toLocaleString('en-CA',{maximumFractionDigits:0})}</span>
-    <span style="color:var(--green)">Total to buy: $${totalBuy.toLocaleString('en-CA',{maximumFractionDigits:0})}</span>
-  </div>`;
-
-  container.innerHTML = html;
+function ptOnSearchInput(rowId, value) {
+  clearTimeout(ptSearchTimer[rowId]);
+  ptSearchTimer[rowId] = setTimeout(() => {
+    ptSearchTicker(value, rowId);
+  }, 280);
 }
 
-function closeRebalModal() {
-  document.getElementById('rebalModal').style.display = 'none';
-}
-
-// ── Export CSV ──
-function exportCSV() {
-  const total = getTotalMarketValue(positions);
-  const rows = [['Symbol','Name','Shares','Avg Cost','Book Value','Market Value','P&L $','P&L %','Weight %','Target %','Drift %']];
-  [...HOLDINGS, {sym:'CASH',name:'Cash',tag:'cash'}].forEach(h => {
-    const pos = positions[h.sym] || { shares:0, avgCost:0 };
-    const mv = getMarketValue(h.sym, positions);
-    const book = pos.shares * pos.avgCost;
-    const pnl = mv - book;
-    const ret = book > 0 ? (pnl/book*100) : 0;
-    const wt = total > 0 ? (mv/total*100) : 0;
-    const tgt = TARGETS[h.sym] || 0;
-    rows.push([
-      getDisplaySym(h.sym), h.name, pos.shares, pos.avgCost.toFixed(2),
-      book.toFixed(2), mv.toFixed(2), pnl.toFixed(2), ret.toFixed(2),
-      wt.toFixed(2), tgt, (wt-tgt).toFixed(2)
-    ]);
+// ── KPI bar ──────────────────────────────────────────────────────
+function ptUpdateKPIs() {
+  let totalVal = 0, totalCost = 0, totalDayChange = 0;
+  let validCount = 0;
+  ptRows.filter(r => r.ticker).forEach(row => {
+    const lp = ptPrices[row.ticker];
+    if (!lp?.price) return;
+    const mktVal  = lp.price * (row.shares || 0);
+    const cost    = (row.avgCost || 0) * (row.shares || 0);
+    const prevVal = lp.changePct !== null ? mktVal / (1 + lp.changePct/100) : mktVal;
+    totalVal      += mktVal;
+    totalCost     += cost;
+    totalDayChange+= mktVal - prevVal;
+    validCount++;
   });
-  const csv = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type:'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `apex-portfolio-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click(); URL.revokeObjectURL(url);
+  const pnl    = totalVal - totalCost;
+  const pnlPct = totalCost > 0 ? (pnl / totalCost * 100) : 0;
+  const pnlCol = pnl >= 0 ? 'var(--gr)' : 'var(--re)';
+  const fmt    = v => ('CA$' + Math.abs(v).toLocaleString('en-CA',{minimumFractionDigits:2,maximumFractionDigits:2}));
+  const setEl  = (id, html) => { const el=document.getElementById(id); if(el) el.innerHTML=html; };
+  const setTxt = (id, txt)  => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+  setEl('pt-total', totalVal   ? fmt(totalVal)  : '—');
+  setEl('pt-cost',  totalCost  ? fmt(totalCost) : '—');
+  setEl('pt-pnl',   `<span style="color:${pnlCol}">${pnl>=0?'+':'-'}${fmt(pnl)}</span>`);
+  setEl('pt-pnlpct',`<span style="color:${pnlCol}">${pnl>=0?'+':''}${pnlPct.toFixed(2)}%</span>`);
+  setTxt('pt-count', ptRows.filter(r=>r.ticker).length);
+  const dayCol = totalDayChange >= 0 ? 'var(--gr)' : 'var(--re)';
+  setEl('pt-daychange', totalVal ? `<span style="color:${dayCol}">${totalDayChange>=0?'+':'-'}${fmt(Math.abs(totalDayChange))}</span>` : '—');
+  // Update sidebar portfolio value
+  const pvEl = document.getElementById('sidebarPV');
+  if (pvEl && totalVal) pvEl.textContent = fmt(totalVal);
 }
 
-// Init Sprint 2 when switching to portfolio page
-// Sprint 2 page init merged into main showPage
-function _s2PageInit(id) {
-  if (id === 'portfolio') initPortfolioTracker();
-  if (id === 'news') loadCachedNews();
-};
+// ── CSV Export ───────────────────────────────────────────────────
+function ptExportCSV() {
+  const header = ['Ticker','Name','Shares','AvgCost','LivePrice','MarketValue','PnL','PnL%','Currency'];
+  const rows = ptRows.filter(r => r.ticker).map(row => {
+    const lp = ptPrices[row.ticker];
+    const price = lp?.price || '';
+    const mktVal = price && row.shares ? (price * row.shares).toFixed(2) : '';
+    const cost   = row.avgCost && row.shares ? (row.avgCost * row.shares).toFixed(2) : '';
+    const pnl    = mktVal && cost ? (mktVal - cost).toFixed(2) : '';
+    const pnlPct = pnl && cost ? ((pnl/cost)*100).toFixed(2)+'%' : '';
+    return [row.ticker, row.name, row.shares, row.avgCost, price, mktVal, pnl, pnlPct, row.currency];
+  });
+  const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'apex-portfolio-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
 
-// ═══════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
+// ── Compatibility shims for other modules ────────────────────────
+function getMarketValue(ticker, positions) {
+  const pos = positions || {};
+  const shares = pos[ticker]?.shares || 0;
+  const price = getLivePrice(ticker) || 0;
+  return shares * price;
+}
+function getTotalMarketValue(positions) {
+  const pos = positions || {};
+  return Object.keys(pos).reduce((sum, t) => sum + getMarketValue(t, pos), 0);
+}
+function updatePosition(ticker, field, value) {
+  const row = ptRows.find(r => r.ticker === ticker);
+  if (row) { row[field] = parseFloat(value)||0; ptSave(); }
+}
+function deletePosition(ticker) {
+  ptRows = ptRows.filter(r => r.ticker !== ticker);
+  ptSave(); ptRenderTable();
+}
+function addPosition(ticker, name, shares, avgCost, currency) {
+  const exists = ptRows.find(r => r.ticker === ticker);
+  if (exists) { exists.shares = shares; exists.avgCost = avgCost; ptSave(); return; }
+  const id = 'row_' + Date.now();
+  ptRows.push({ id, ticker, name: name||ticker, shares: shares||0, avgCost: avgCost||0, currency: currency||'USD' });
+  ptSave();
+  ptRefreshAllPrices();
+}
+
+// ── Page init ─────────────────────────────────────────────────────
+async function initPortfolioTracker() {
+  // Load cached prices
+  try {
+    const pc = JSON.parse(localStorage.getItem(PT_PRICE_KEY) || '{}');
+    if (typeof pc === 'object') ptPrices = pc;
+  } catch(e) {}
+  // Load rows
+  ptRows = ptLoadRows();
+  // If no rows, start with one blank
+  if (ptRows.length === 0) ptAddRow();
+  else ptRenderTable();
+  // Refresh live prices
+  ptRefreshAllPrices();
+  ptUpdateKPIs();
+}
+
 // NEWS FEED  ─  Yahoo Finance + multi-source RSS headlines
 // ═══════════════════════════════════════════════════════════════
 
