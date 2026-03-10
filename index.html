@@ -737,6 +737,155 @@ tbody tr:hover td { background: var(--s2); }
 .sent-map-bar  { height: 16px; border-radius: 2px; min-width: 3px; transition: width 0.4s; display: flex; align-items: center; justify-content: center; font-size: 8px; color: rgba(255,255,255,0.7); }
 .sent-map-count { font-size: 10px; color: var(--dim); width: 60px; text-align: right; }
 
+/* ===== PORTFOLIO TRACKER ===== */
+.pt-kpi-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px 8px;
+  flex-wrap: wrap;
+}
+.pt-kpi-card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 14px;
+  min-width: 110px;
+  flex: 1;
+}
+.pt-kpi-card .label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--dim);
+  margin-bottom: 3px;
+}
+.pt-kpi-card .val {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+.pt-kpi-card .sub {
+  font-size: 10px;
+  color: var(--dim);
+  margin-top: 1px;
+}
+.pt-tracker-wrap {
+  padding: 0 20px 20px;
+  overflow-x: auto;
+}
+.pt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.pt-toolbar-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--dim);
+  flex: 1;
+}
+.pt-btn {
+  background: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.pt-btn:hover { border-color: var(--green); background: var(--s4); }
+.pt-btn.danger:hover { border-color: var(--red); }
+.pt-table-wrap {
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  overflow-x: auto;
+}
+.pt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  min-width: 780px;
+}
+.pt-table th {
+  background: var(--s3);
+  color: var(--dim);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 8px 10px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.pt-table th:first-child, .pt-table th:nth-child(2) { text-align: left; }
+.pt-table td {
+  padding: 7px 10px;
+  text-align: right;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.pt-table td:first-child { text-align: left; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.pt-table td:nth-child(2) { text-align: left; }
+.pt-table tr:last-child td { border-bottom: none; }
+.pt-table tr:hover td { background: rgba(255,255,255,0.03); }
+.pt-ticker-search {
+  position: relative;
+  min-width: 90px;
+}
+.pt-ticker-input {
+  background: var(--s3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  width: 90px;
+  outline: none;
+  text-transform: uppercase;
+  transition: border-color 0.15s;
+}
+.pt-ticker-input:focus { border-color: var(--green); }
+.pt-ticker-input::placeholder { text-transform: none; color: var(--dim); font-size: 10px; }
+.pt-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  background: var(--s4);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  z-index: 999;
+  min-width: 220px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+.pt-dropdown-item {
+  padding: 7px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.1s;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.pt-dropdown-item:last-child { border-bottom: none; }
+.pt-dropdown-item:hover { background: rgba(0,255,136,0.08); }
+.pt-dropdown-item .sym { font-weight: 700; color: var(--green); font-size: 11px; min-width: 55px; }
+.pt-dropdown-item .name { font-size: 10px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-name-cell { font-size: 11px; color: var(--text); }
+.pt-name-cell .ticker-badge { display: inline-block; background: var(--s3); border-radius: 3px; padding: 1px 5px; font-size: 9px; color: var(--green); margin-right: 5px; font-weight: 700; }
 .pt-input {
   background: var(--s3);
   border: 1px solid var(--border);
@@ -745,12 +894,38 @@ tbody tr:hover td { background: var(--s2); }
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 11px;
-  width: 80px;
+  width: 75px;
   text-align: right;
   outline: none;
   transition: border-color 0.15s;
 }
 .pt-input:focus { border-color: var(--green); }
+.pt-price-live { color: var(--text); }
+.pt-loading { color: var(--dim); font-style: italic; }
+.pt-positive { color: var(--green); }
+.pt-negative { color: var(--red); }
+.pt-neutral { color: var(--dim); }
+.pt-remove-btn {
+  background: none;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.pt-remove-btn:hover { color: var(--red); background: rgba(255,80,80,0.1); }
+.pt-empty-row td {
+  text-align: center;
+  padding: 30px;
+  color: var(--dim);
+  font-size: 11px;
+  font-style: italic;
+}
+/* ===== END PORTFOLIO TRACKER ===== */
+
 
 .drift-bar-wrap {
   display: flex;
@@ -1113,74 +1288,75 @@ tr.editing td { background: rgba(0,229,160,0.04) !important; }
   </div><!-- /dashboard -->
 
   <!-- PORTFOLIO PAGE (Sprint 2) -->
-  <div class="main  <div id="page-portfolio" class="main">
-    <div class="page-header">
-      <div>
-        <div class="page-title">Portfolio Builder</div>
-        <div class="page-subtitle" id="pt-subtitle">Add your holdings below · live prices update automatically</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="refresh-btn" onclick="ptRefreshAllPrices()" title="Refresh all live prices">↺ Refresh Prices</button>
-        <button class="refresh-btn" onclick="ptExportCSV()" title="Export to CSV">↓ Export</button>
-      </div>
+  <div id="page-portfolio" class="main">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Portfolio</div>
+      <div class="page-subtitle" id="pt-subtitle">Add your holdings below — type a ticker to search</div>
     </div>
-
-    <!-- Summary KPI bar -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px" id="pt-kpi-bar">
-      <div class="card" style="padding:12px 16px">
-        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Value</div>
-        <div style="font-size:20px;font-weight:700;color:var(--txt)" id="pt-total">—</div>
-      </div>
-      <div class="card" style="padding:12px 16px">
-        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total Cost</div>
-        <div style="font-size:20px;font-weight:700;color:var(--txt)" id="pt-cost">—</div>
-      </div>
-      <div class="card" style="padding:12px 16px">
-        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Total P&L</div>
-        <div style="font-size:20px;font-weight:700" id="pt-pnl">—</div>
-        <div style="font-size:11px;color:var(--dim)" id="pt-pnlpct"></div>
-      </div>
-      <div class="card" style="padding:12px 16px">
-        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Positions</div>
-        <div style="font-size:20px;font-weight:700;color:var(--acc)" id="pt-count">0</div>
-      </div>
-      <div class="card" style="padding:12px 16px">
-        <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Day Change</div>
-        <div style="font-size:20px;font-weight:700" id="pt-daychange">—</div>
-      </div>
-    </div>
-
-    <!-- Spreadsheet table -->
-    <div class="card" style="padding:0;overflow:visible">
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;min-width:900px" id="ptTable">
-          <thead>
-            <tr style="background:var(--bg3);border-bottom:1px solid var(--bd)">
-              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:200px">Stock / ETF</th>
-              <th style="padding:10px 12px;text-align:left;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:80px">Ticker</th>
-              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:90px">Shares</th>
-              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">Avg Cost</th>
-              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">Live Price</th>
-              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:100px">Day %</th>
-              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">Mkt Value</th>
-              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:110px">P&L</th>
-              <th style="padding:10px 12px;text-align:right;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;min-width:70px">P&L %</th>
-              <th style="padding:10px 8px;text-align:center;width:40px"></th>
-            </tr>
-          </thead>
-          <tbody id="ptRows">
-            <!-- rows injected by JS -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div style="margin-top:10px;display:flex;gap:8px">
-      <button class="refresh-btn" onclick="ptAddRow()" style="background:var(--acc);color:#000;font-weight:600">+ Add Stock</button>
-      <span style="font-size:11px;color:var(--dim);line-height:32px">Type a company name or ticker in the search field to add a holding</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="refresh-btn" onclick="ptRefreshAllPrices()" title="Refresh all prices">↻ Refresh Prices</button>
+      <button class="pt-btn" onclick="ptExportCSV()" title="Export to CSV">⬇ Export CSV</button>
     </div>
   </div>
 
-id="page-news">
+  <!-- KPI Bar -->
+  <div id="pt-kpi-bar" class="pt-kpi-bar">
+    <div class="pt-kpi-card">
+      <div class="label">Market Value</div>
+      <div class="val" id="pt-total">—</div>
+    </div>
+    <div class="pt-kpi-card">
+      <div class="label">Total Cost</div>
+      <div class="val" id="pt-cost">—</div>
+    </div>
+    <div class="pt-kpi-card">
+      <div class="label">P&amp;L</div>
+      <div class="val" id="pt-pnl">—</div>
+      <div class="sub" id="pt-pnlpct">—</div>
+    </div>
+    <div class="pt-kpi-card">
+      <div class="label">Day Change</div>
+      <div class="val" id="pt-daychange">—</div>
+    </div>
+    <div class="pt-kpi-card">
+      <div class="label">Positions</div>
+      <div class="val" id="pt-count">0</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="pt-tracker-wrap">
+    <div class="pt-toolbar">
+      <span class="pt-toolbar-title">Holdings</span>
+      <button class="pt-btn" onclick="ptAddRow()">+ Add Row</button>
+    </div>
+    <div class="pt-table-wrap">
+      <table class="pt-table" id="ptTable">
+        <thead>
+          <tr>
+            <th style="text-align:left;width:170px">Stock / ETF</th>
+            <th style="text-align:left;width:80px">Ticker</th>
+            <th style="width:80px">Shares</th>
+            <th style="width:90px">Avg Cost</th>
+            <th style="width:90px">Live Price</th>
+            <th style="width:70px">Day %</th>
+            <th style="width:100px">Mkt Value</th>
+            <th style="width:90px">P&amp;L</th>
+            <th style="width:70px">P&amp;L %</th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="ptRows"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:var(--dim)">
+      <span>Prices via Yahoo Finance · Auto-saves to browser storage</span>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="page-news">
     <div class="page-header">
       <div>
         <div class="page-title">News Feed</div>
