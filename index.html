@@ -984,6 +984,52 @@ body.day-mode {
   transform: translateX(20px); background: var(--green);
 }
 
+
+/* ── Sector Breakdown ── */
+.sector-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.sector-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-bottom: 1px solid rgba(37,38,56,0.5);
+  transition: background 0.15s;
+}
+.sector-row:last-child { border-bottom: none; }
+.sector-row:hover { background: var(--s2); }
+.sector-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.sector-name {
+  flex: 1; font-size: 11px; color: var(--mid);
+}
+.sector-bar-bg {
+  width: 70px; height: 4px; background: var(--s3);
+  border-radius: 2px; overflow: hidden;
+}
+.sector-bar-fill {
+  height: 100%; border-radius: 2px; transition: width 0.5s ease;
+}
+.sector-pct {
+  font-size: 11px; width: 42px; text-align: right; font-weight: 500;
+}
+.sector-tickers {
+  font-size: 9px; color: var(--dim); margin-top: 1px;
+}
+.sector-filter-btn {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 5px; padding: 4px 10px;
+  color: var(--mid); font-family: var(--font-mono);
+  font-size: 9px; cursor: pointer; transition: all 0.15s;
+}
+.sector-filter-btn:hover { border-color: var(--border2); color: var(--text); }
+.sector-filter-btn.active { background: rgba(77,159,255,0.1); border-color: var(--blue); color: var(--blue); }
+
 </style>
 </head>
 <body>
@@ -1179,6 +1225,33 @@ body.day-mode {
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Sector Breakdown -->
+    <div class="sector-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Sector Breakdown</div>
+          <div class="card-meta">
+            <div style="display:flex;gap:4px;">
+              <button class="sector-filter-btn active" onclick="setSectorView('sector',this)">By Sector</button>
+              <button class="sector-filter-btn" onclick="setSectorView('asset',this)">By Asset Class</button>
+            </div>
+          </div>
+        </div>
+        <div id="sectorBreakdownList" style="padding:4px 0">
+          <div style="padding:12px 18px;color:var(--dim);font-size:11px">Loading portfolio data...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Actual vs Target</div>
+          <div class="card-meta">Based on your strategy</div>
+        </div>
+        <div id="sectorVsTargetList" style="padding:4px 0">
+          <div style="padding:12px 18px;color:var(--dim);font-size:11px">Loading...</div>
+        </div>
       </div>
     </div>
 
@@ -1725,6 +1798,7 @@ async function fetchAllPrices() {
   document.getElementById('apiDot').style.background = successCount > 5 ? 'var(--green)' : 'var(--yellow)';
   document.getElementById('apiStatus').textContent = `Prices: ${successCount}/${HOLDINGS.length} live`;
   document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-CA');
+    try { renderSectorBreakdown(); } catch(e) {}
 }
 
 // ── Ticker tape ──
@@ -1851,6 +1925,7 @@ async function ptRefreshAllPrices() {
   await Promise.all(tickers.map(t => ptFetchPrice(t)));
   ptRenderTable();
   ptUpdateKPIs();
+    renderSectorBreakdown();
 }
 
 // ── Search / Autocomplete ────────────────────────────────────────
@@ -2502,6 +2577,177 @@ function initSettingsPage() {
 }
 
 // ── Init ──
+// ── Sector & Asset Class Mapping ──
+// Maps each ticker to its sector and asset class
+const TICKER_SECTORS = {
+  // Technologie de l'information
+  'NVDA':       { sector: 'Technologie de l\'information', assetClass: 'Equities', color: '#4d9fff' },
+  'IONQ':       { sector: 'Technologie de l\'information', assetClass: 'Equities', color: '#4d9fff' },
+  // Santé
+  'UNH':        { sector: 'Santé', assetClass: 'Equities', color: '#00e5a0' },
+  'CVS':        { sector: 'Santé', assetClass: 'Equities', color: '#00e5a0' },
+  'HELP.NE':    { sector: 'Biotechnologie & Génomique', assetClass: 'Equities', color: '#9b6dff' },
+  // Financier
+  'TD':         { sector: 'Financier', assetClass: 'Equities', color: '#f5c542' },
+  'BRK-B':      { sector: 'Financier', assetClass: 'Equities', color: '#f5c542' },
+  // Consommation discrétionnaire
+  'LULU':       { sector: 'Consommation discrétionnaire', assetClass: 'Equities', color: '#ff4d6a' },
+  'MTY.TO':     { sector: 'Consommation discrétionnaire', assetClass: 'Equities', color: '#ff4d6a' },
+  // Marchés émergents
+  'ZEM.TO':     { sector: 'Marchés émergents', assetClass: 'Equities', color: '#ff8c42' },
+  'ZCH.TO':     { sector: 'Marchés émergents', assetClass: 'Equities', color: '#ff8c42' },
+  // U.S. Equity (broad market)
+  'XSP.TO':     { sector: 'U.S. Equity (S&P 500)', assetClass: 'Equities', color: '#4d9fff' },
+  // Cryptoactifs & Blockchain
+  'BTCX-B.TO':  { sector: 'Cryptoactifs & Blockchain', assetClass: 'Alternatives', color: '#f5c542' },
+  // Or / Matières premières
+  'KILO.NE':    { sector: 'Matériaux (Or)', assetClass: 'Alternatives', color: '#f5c542' },
+  // Cash
+  'CASH':       { sector: 'Cash', assetClass: 'Cash', color: '#454868' },
+};
+
+// Default for unknown tickers
+const DEFAULT_SECTOR = { sector: 'Autre', assetClass: 'Equities', color: '#454868' };
+
+function getTickerSector(ticker) {
+  return TICKER_SECTORS[ticker] || DEFAULT_SECTOR;
+}
+
+let currentSectorView = 'sector'; // 'sector' or 'asset'
+
+function setSectorView(view, btn) {
+  currentSectorView = view;
+  document.querySelectorAll('.sector-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderSectorBreakdown();
+}
+
+function computeSectorWeights() {
+  const rows = ptLoadRows().filter(r => r.ticker);
+  const weights = {};
+  let totalValue = 0;
+
+  rows.forEach(row => {
+    const lp = ptPrices[row.ticker];
+    const price = lp?.price || 0;
+    const mktVal = price * (row.shares || 0);
+    if (mktVal <= 0) return;
+
+    const info = getTickerSector(row.ticker);
+    const key = currentSectorView === 'asset' ? info.assetClass : info.sector;
+
+    if (!weights[key]) {
+      weights[key] = { value: 0, color: info.color, tickers: [] };
+    }
+    weights[key].value += mktVal;
+    if (!weights[key].tickers.includes(row.ticker)) {
+      weights[key].tickers.push(row.ticker);
+    }
+    totalValue += mktVal;
+  });
+
+  // Convert to percentages
+  const result = Object.entries(weights)
+    .map(([name, d]) => ({
+      name,
+      pct: totalValue > 0 ? (d.value / totalValue * 100) : 0,
+      value: d.value,
+      color: d.color,
+      tickers: d.tickers
+    }))
+    .sort((a, b) => b.pct - a.pct);
+
+  return { sectors: result, total: totalValue };
+}
+
+function renderSectorBreakdown() {
+  const listEl = document.getElementById('sectorBreakdownList');
+  if (!listEl) return;
+
+  const { sectors, total } = computeSectorWeights();
+
+  if (!sectors.length || total <= 0) {
+    listEl.innerHTML = '<div style="padding:12px 18px;color:var(--dim);font-size:11px">Add holdings in Portfolio to see breakdown</div>';
+    return;
+  }
+
+  const maxPct = Math.max(...sectors.map(s => s.pct));
+
+  listEl.innerHTML = sectors.map(s => {
+    const barW = Math.min(s.pct / maxPct * 100, 100);
+    const tickerList = s.tickers.map(t => t.replace('.TO','').replace('.NE','').replace('-B','')).join(', ');
+    return '<div class="sector-row">' +
+      '<div class="sector-dot" style="background:' + s.color + ';box-shadow:0 0 4px ' + s.color + '40"></div>' +
+      '<div style="flex:1">' +
+        '<div class="sector-name">' + s.name + '</div>' +
+        '<div class="sector-tickers">' + tickerList + '</div>' +
+      '</div>' +
+      '<div class="sector-bar-bg"><div class="sector-bar-fill" style="width:' + barW + '%;background:' + s.color + '"></div></div>' +
+      '<div class="sector-pct" style="color:' + s.color + '">' + s.pct.toFixed(1) + '%</div>' +
+    '</div>';
+  }).join('');
+
+  // Also render Actual vs Target
+  renderActualVsTarget(sectors, total);
+}
+
+function renderActualVsTarget(sectors, total) {
+  const el = document.getElementById('sectorVsTargetList');
+  if (!el) return;
+
+  const strat = ALLOC_STRATEGIES[currentAllocStrategy];
+  if (!strat) return;
+
+  // Compute actual asset class breakdown
+  const actualByAsset = {};
+  const rows = ptLoadRows().filter(r => r.ticker);
+  rows.forEach(row => {
+    const lp = ptPrices[row.ticker];
+    const price = lp?.price || 0;
+    const mktVal = price * (row.shares || 0);
+    if (mktVal <= 0) return;
+    const info = getTickerSector(row.ticker);
+    if (!actualByAsset[info.assetClass]) actualByAsset[info.assetClass] = 0;
+    actualByAsset[info.assetClass] += mktVal;
+  });
+
+  // Map strategy asset names to our asset classes
+  const assetMapping = {
+    'Equities (Stocks)': 'Equities',
+    'Bonds / Fixed Income': 'Bonds',
+    'Cash / Money Market': 'Cash',
+    'Alternatives': 'Alternatives',
+    'Alternatives (REITs, commodities)': 'Alternatives',
+  };
+
+  if (total <= 0) {
+    el.innerHTML = '<div style="padding:12px 18px;color:var(--dim);font-size:11px">Add holdings to see comparison</div>';
+    return;
+  }
+
+  el.innerHTML = strat.assets.map(a => {
+    const assetKey = assetMapping[a.name] || a.name;
+    const actualVal = actualByAsset[assetKey] || 0;
+    const actualPct = total > 0 ? (actualVal / total * 100) : 0;
+    const targetPct = a.value;
+    const diff = actualPct - targetPct;
+    const diffColor = Math.abs(diff) < 5 ? 'var(--green)' : Math.abs(diff) < 15 ? 'var(--yellow)' : 'var(--red)';
+    const diffLabel = Math.abs(diff) < 5 ? '\u2713 OK' : (diff > 0 ? '\u25B2 Over' : '\u25BC Under');
+    const chipClass = Math.abs(diff) < 5 ? 'drift-ok' : Math.abs(diff) < 15 ? 'drift-warn' : 'drift-danger';
+
+    return '<div class="alloc-row">' +
+      '<div class="alloc-name">' + a.name + '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:110px">' +
+        '<div style="display:flex;gap:8px;align-items:center;font-size:10px">' +
+          '<span style="color:var(--dim)">Target: ' + targetPct + '%</span>' +
+          '<span style="color:' + a.color + ';font-weight:600">Actual: ' + actualPct.toFixed(1) + '%</span>' +
+        '</div>' +
+        '<div class="drift-chip ' + chipClass + '">' + diffLabel + ' (' + (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%)</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
 // ── Asset Allocation Strategy ──
 const ALLOC_STRATEGIES = {
   conservative: {
@@ -2540,6 +2786,7 @@ function setAllocStrategy(strategy, btn) {
   document.querySelectorAll('.alloc-strat-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderAllocStrategy();
+  renderSectorBreakdown();
   try { localStorage.setItem('apex-alloc-strategy', strategy); } catch(e) {}
 }
 
@@ -2601,6 +2848,7 @@ function initAllocStrategy() {
 
 buildInitialTape();
   initAllocStrategy();
+  renderSectorBreakdown();
   initFontMode();
 fetchAllPrices();
 setInterval(fetchAllPrices, 5 * 60 * 1000);
