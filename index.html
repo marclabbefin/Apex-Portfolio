@@ -2402,12 +2402,8 @@ function sourceColor(publisher) {
 // BRK-B → Berkshire lookup (tickers that need alternate search terms)
 const SEARCH_OVERRIDES = {
   'BRK-B': 'Berkshire Hathaway',
-  'BTCX-B.TO': 'Bitcoin ETF Canada',
-  'XSP.TO': 'S&P 500 ETF Canada',
-  'ZEM.TO': 'BMO emerging markets ETF',
-  'ZCH.TO': 'BMO China ETF',
-  'KILO.NE': 'Kilogram Gold ETF',
-  'HELP.NE': 'Cybin HELP',
+  'BTCX-B.TO': 'Bitcoin ETF',
+  'HELP.NE': 'Cybin Inc',
   'MTY.TO': 'MTY Food Group',
 };
 
@@ -2442,10 +2438,17 @@ async function fetchNewsForPortfolio() {
       const news = j?.news || [];
       news.forEach(n => {
         if (seen.has(n.uuid)) return;
+        // Skip articles with no relevant portfolio tickers in relatedTickers
+        // (except when ticker has no override - direct match is guaranteed relevant)
+        const relYF = n.relatedTickers || [];
+        const hasRelevantTicker = relYF.some(t => tickers.includes(t));
+        // Also check: ticker was directly used as query (not an override search term)
+        const isDirectSearch = !SEARCH_OVERRIDES[ticker];
+        if (!hasRelevantTicker && !isDirectSearch) return; // skip irrelevant articles
         seen.add(n.uuid);
         const { sentiment, impact } = scoreSentiment(n.title, '');
         // Map related tickers to known portfolio tickers
-        const related = (n.relatedTickers || []).filter(t => tickers.includes(t));
+        const related = relYF.filter(t => tickers.includes(t));
         if (!related.includes(ticker)) related.unshift(ticker);
         items.push({
           uuid:      n.uuid,
